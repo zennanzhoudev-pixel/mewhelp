@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS low_confidence_questions (
 
 CREATE TABLE IF NOT EXISTS faith_cases (
   id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
-  eval_id       VARCHAR(16)     NOT NULL                COMMENT '评估集题号,如 A43;一题一行',
+  eval_id       VARCHAR(16)     NOT NULL                COMMENT '评估集题号,如 A43,一题一行',
   bucket        VARCHAR(24)     NOT NULL                COMMENT '题目所属桶:A_policy / B_model / C_colloquial / E_multi',
   query         VARCHAR(512)    NOT NULL                COMMENT '用户问题原文',
   strategy      VARCHAR(24)     NOT NULL DEFAULT 'hybrid_rerank' COMMENT '产出这条答案的检索策略',
