@@ -34,7 +34,7 @@ services:
       retries: 3
 
   minio:
-    image: quay.io/minio/minio:RELEASE.2023-03-20T20-16-18Z
+    image: milvusdb/minio:RELEASE.2024-12-18T13-15-44Z
     container_name: mewhelp-milvus-minio
     environment:
       MINIO_ACCESS_KEY: minioadmin
