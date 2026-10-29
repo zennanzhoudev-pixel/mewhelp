@@ -2,6 +2,9 @@ services:
   mysql:
     image: mysql:8.0
     container_name: mewhelp-mysql
+    # asyncmy 对 caching_sha2_password 的 RSA 公钥交换在部分环境会失败;
+    # 8.0 仍支持 mysql_native_password,统一用它对客户端最稳。
+    command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: mewhelp
