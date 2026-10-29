@@ -69,7 +69,7 @@ async def _test_engine():
                 await conn.execute(text(s))
     except Exception as exc:
         await engine.dispose()
-        pytest.skip(f"测试库建表失败:{type(exc).__name__}")
+        pytest.skip(f"测试库建表失败:{type(exc).__name__}: {exc}")
     yield engine
     await engine.dispose()
 
