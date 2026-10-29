@@ -22,11 +22,13 @@ class Conversation(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     user_id: Mapped[str] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(
-        Enum("进行中", "已转人工", "已结束"), server_default="进行中"
+        Enum("进行中", "已转人工", "已结束"), default="进行中", server_default="进行中"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), server_default=func.now()
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now()
+        DateTime, default=func.now(), server_default=func.now(), onupdate=func.now()
     )
 
 
@@ -41,7 +43,9 @@ class Message(Base):
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
     tool_calls: Mapped[list | None] = mapped_column(JSON, nullable=True)
     tool_call_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), server_default=func.now()
+    )
 
 
 class Faq(Base):
@@ -51,9 +55,11 @@ class Faq(Base):
     question: Mapped[str] = mapped_column(String(512))
     answer: Mapped[str] = mapped_column(Text)
     category: Mapped[str] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), server_default=func.now()
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now()
+        DateTime, default=func.now(), server_default=func.now(), onupdate=func.now()
     )
 
 
@@ -67,9 +73,11 @@ class Ticket(Base):
     description: Mapped[str] = mapped_column(Text)
     ticket_type: Mapped[str] = mapped_column(Enum("售后", "投诉", "咨询"))
     status: Mapped[str] = mapped_column(
-        Enum("待处理", "已处理"), server_default="待处理"
+        Enum("待处理", "已处理"), default="待处理", server_default="待处理"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), server_default=func.now()
+    )
 
 
 class KnowledgeChunk(Base):
@@ -81,16 +89,18 @@ class KnowledgeChunk(Base):
     answer: Mapped[str] = mapped_column(Text)
     section_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
     content_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    is_key_clause: Mapped[int] = mapped_column(Integer, server_default="0")
+    is_key_clause: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     prev_chunk_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     next_chunk_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     vector_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     vectorize_status: Mapped[str] = mapped_column(
-        Enum("pending", "done"), server_default="pending"
+        Enum("pending", "done"), default="pending", server_default="pending"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), server_default=func.now()
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now()
+        DateTime, default=func.now(), server_default=func.now(), onupdate=func.now()
     )
 
 
@@ -103,9 +113,11 @@ class QaExtractionStaging(Base):
     question: Mapped[str] = mapped_column(Text)
     answer: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(
-        Enum("extracted", "kept", "discarded"), server_default="extracted"
+        Enum("extracted", "kept", "discarded"), default="extracted", server_default="extracted"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), server_default=func.now()
+    )
 
 
 class LowConfidenceQuestion(Base):
@@ -120,7 +132,9 @@ class LowConfidenceQuestion(Base):
         Enum("retrieval_low_conf", "self_check", "user_feedback")
     )
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), server_default=func.now()
+    )
 
 
 class FaithCase(Base):
@@ -136,11 +150,15 @@ class FaithCase(Base):
     citations: Mapped[list | None] = mapped_column(JSON, nullable=True)
     judge_model: Mapped[str | None] = mapped_column(String(64), nullable=True)
     status: Mapped[str] = mapped_column(
-        Enum("未解决", "已解决", "无需解决"), server_default="未解决"
+        Enum("未解决", "已解决", "无需解决"), default="未解决", server_default="未解决"
     )
-    seen_count: Mapped[int] = mapped_column(Integer, server_default="1")
-    first_seen_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    last_seen_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    seen_count: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    first_seen_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), server_default=func.now()
+    )
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), server_default=func.now()
+    )
     resolution: Mapped[str | None] = mapped_column(String(300), nullable=True)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
