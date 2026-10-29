@@ -59,7 +59,9 @@ async def _test_engine():
             await conn.execute(text("CREATE DATABASE mewhelp_test CHARACTER SET utf8mb4"))
         await admin.dispose()
     except Exception as exc:  # 连不上 / 凭据不符 / 无建库权限
-        pytest.skip(f"MySQL 不可用或凭据不符(需 root/root 的测试库):{type(exc).__name__}")
+        pytest.skip(
+            f"MySQL 不可用或凭据不符(需 root/root 的测试库):{type(exc).__name__}: {exc}"
+        )
     engine = create_async_engine(settings.test_database_url, pool_pre_ping=True)
     try:
         async with engine.begin() as conn:
