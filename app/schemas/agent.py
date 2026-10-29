@@ -1,3 +1,7 @@
+# 来源：公众号@小林coding
+# 后端八股网站：xiaolincoding.com
+# Agent网站：xiaolinnote.com
+# 简历模版：jianli.xiaolinnote.com
 from pydantic import BaseModel, Field
 
 
@@ -26,4 +30,6 @@ class AgentResponse(BaseModel):
     tool_calls: list[ToolCallView]
     tool_results: list[ToolResultView]
     suggested_actions: list = Field(default_factory=list)
-
+    interrupt: dict | None = Field(
+        default=None,
+        description="中断负载(含 type:select_order 带 orders / confirm_ticket 带 preview);无则 None")

@@ -1,3 +1,7 @@
+# 来源：公众号@小林coding
+# 后端八股网站：xiaolincoding.com
+# Agent网站：xiaolinnote.com
+# 简历模版：jianli.xiaolinnote.com
 import json
 import logging
 from collections.abc import AsyncIterator
@@ -26,15 +30,17 @@ def _sse_error(message: str) -> AsyncIterator[str]:
 async def chat(req: ChatRequest):
     async def event_stream() -> AsyncIterator[str]:
         try:
-            async for ev in runtime.stream_turn(
-                req.user_id, req.message, req.conversation_id
-            ):
+            async for ev in runtime.stream_turn(req.user_id, req.message, req.conversation_id):
                 if ev["type"] == "tool":
                     yield _sse({"event": "tool", "name": ev["name"]})
                 elif ev["type"] == "delta":
                     yield _sse({"delta": ev["text"]})
                 elif ev["type"] == "citations":
                     yield _sse({"event": "citations", "items": ev["items"]})
+                elif ev["type"] == "interrupt":
+                    # ch08:负载透传(select_order 带 orders / confirm_ticket 带 preview),前端按 kind 分发
+                    yield _sse({"event": "interrupt",
+                                **{k: v for k, v in ev.items() if k != "type"}})
                 elif ev["type"] == "actions":
                     yield _sse({"event": "actions", "items": ev["items"]})
                 elif ev["type"] == "done":
@@ -56,4 +62,3 @@ async def chat(req: ChatRequest):
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
-

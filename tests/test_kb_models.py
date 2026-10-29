@@ -1,9 +1,13 @@
+# 来源：公众号@小林coding
+# 后端八股网站：xiaolincoding.com
+# Agent网站：xiaolinnote.com
+# 简历模版：jianli.xiaolinnote.com
 from sqlalchemy import select
 
 from app.db.models import KnowledgeChunk, QaExtractionStaging
 
 
-async def test_knowledge_chunk_roundtrip(db_session_factory, db_clean):
+async def test_knowledge_chunk_roundtrip(db_session_factory):
     async with db_session_factory() as s:
         row = KnowledgeChunk(category="售后政策", questions="运费说明", answer="满99包邮")
         s.add(row)
@@ -14,13 +18,11 @@ async def test_knowledge_chunk_roundtrip(db_session_factory, db_clean):
         assert row.is_key_clause == 0
 
 
-async def test_staging_roundtrip(db_session_factory, db_clean):
+async def test_staging_roundtrip(db_session_factory):
     async with db_session_factory() as s:
         row = QaExtractionStaging(batch_no="b1", question="邮费多少", answer="满99包邮")
         s.add(row)
         await s.commit()
-    async with db_session_factory() as s:
-        rows = (await s.execute(select(QaExtractionStaging))).scalars().all()
-        assert len(rows) == 1
-        assert rows[0].status == "extracted"
-
+        got = (await s.execute(select(QaExtractionStaging))).scalars().all()
+        assert len(got) == 1
+        assert got[0].status == "extracted"

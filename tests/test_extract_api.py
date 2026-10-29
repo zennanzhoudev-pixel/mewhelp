@@ -1,3 +1,7 @@
+# 来源：公众号@小林coding
+# 后端八股网站：xiaolincoding.com
+# Agent网站：xiaolinnote.com
+# 简历模版：jianli.xiaolinnote.com
 from fastapi.testclient import TestClient
 from langchain_core.runnables import RunnableLambda
 
@@ -42,4 +46,3 @@ def test_extract_upstream_failure_returns_502():
 def test_extract_validates_empty_text():
     client = override(RunnableLambda(lambda _: None))
     assert client.post("/api/extract", json={"text": ""}).status_code == 422
-

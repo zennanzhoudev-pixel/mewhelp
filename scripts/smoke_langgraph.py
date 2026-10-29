@@ -1,12 +1,16 @@
+# 来源：公众号@小林coding
+# 后端八股网站：xiaolincoding.com
+# Agent网站：xiaolinnote.com
+# 简历模版：jianli.xiaolinnote.com
 """ch05 红线冒烟:StateGraph + AsyncSqliteSaver + 多模式流式 是否在当前版本跑通,并打印流式形状。"""
 import asyncio
 from typing import Annotated
+from typing_extensions import TypedDict
 
 from langchain_core.messages import HumanMessage
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-from langgraph.graph import END, START, StateGraph
+from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
-from typing_extensions import TypedDict
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from app.core.llm import get_chat_model
 
@@ -32,8 +36,7 @@ async def main():
         seen_modes = set()
         async for mode, chunk in graph.astream(
             {"messages": [HumanMessage("用一句话介绍你自己")]},
-            config,
-            stream_mode=["messages", "updates"],
+            config, stream_mode=["messages", "updates"],
         ):
             seen_modes.add(mode)
             if mode == "messages":
@@ -46,4 +49,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

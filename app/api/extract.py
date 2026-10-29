@@ -1,3 +1,7 @@
+# 来源：公众号@小林coding
+# 后端八股网站：xiaolincoding.com
+# Agent网站：xiaolinnote.com
+# 简历模版：jianli.xiaolinnote.com
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -25,4 +29,3 @@ async def extract(
     except Exception as exc:
         logger.exception("结构化提取失败")
         raise HTTPException(status_code=502, detail="上游模型暂时不可用,请稍后重试") from exc
-

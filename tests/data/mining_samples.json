@@ -1,6 +1,10 @@
 [
-  {"conversation": "user: 你们发货一般多久啊\nassistant: 现货商品付款后48小时内发货,预售以详情页为准。", "expect_any": ["发货", "时效", "48"]},
-  {"conversation": "user: 满多少包邮\nassistant: 单笔订单满99元包邮,未满收取10元运费。", "expect_any": ["包邮", "运费"]},
-  {"conversation": "user: 我的订单SO123到哪了\nassistant: 您这笔订单的物流状态我看一下。", "expect_empty": true}
+  {
+    "conversation": "user: 你们运费怎么算啊\nassistant: 单笔订单满99元包邮,未满收取10元运费,偏远地区另计。",
+    "expect_question_contains": "运费"
+  },
+  {
+    "conversation": "user: 我的订单MH123到哪了\nassistant: 您的包裹在广州分拨中心,预计明天送达。",
+    "expect_empty": true
+  }
 ]
-

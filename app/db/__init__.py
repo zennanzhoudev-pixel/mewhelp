@@ -1,1 +1,4 @@
-"""数据层:SQLAlchemy 异步引擎、ORM 映射与仓储。"""
+# 来源：公众号@小林coding
+# 后端八股网站：xiaolincoding.com
+# Agent网站：xiaolinnote.com
+# 简历模版：jianli.xiaolinnote.com

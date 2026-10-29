@@ -1,1 +1,4 @@
-"""核心能力:模型工厂、Prompt、会话记忆、检索等。"""
+# 来源：公众号@小林coding
+# 后端八股网站：xiaolincoding.com
+# Agent网站：xiaolinnote.com
+# 简历模版：jianli.xiaolinnote.com

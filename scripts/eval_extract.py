@@ -1,3 +1,7 @@
+# 来源：公众号@小林coding
+# 后端八股网站：xiaolincoding.com
+# Agent网站：xiaolinnote.com
+# 简历模版：jianli.xiaolinnote.com
 """对 /api/extract 跑标注样例,核对 order_id 与 request_type(expected_solution 人工目检)。"""
 import json
 import pathlib
@@ -10,7 +14,7 @@ BASE = "http://localhost:8000"
 
 
 def main() -> int:
-    samples = json.loads(SAMPLES.read_text(encoding="utf-8"))
+    samples = json.loads(SAMPLES.read_text())
     failures = 0
     for i, s in enumerate(samples, 1):
         r = httpx.post(f"{BASE}/api/extract", json={"text": s["text"]}, timeout=60)
@@ -29,4 +33,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

@@ -1,3 +1,7 @@
+# 来源：公众号@小林coding
+# 后端八股网站：xiaolincoding.com
+# Agent网站：xiaolinnote.com
+# 简历模版：jianli.xiaolinnote.com
 from app.kb import chunking
 
 
@@ -11,8 +15,7 @@ def test_split_sections_keeps_header_path():
 
 
 def test_recursive_split_breaks_oversized():
-    text = "句子内容。" * 60
-    parts = chunking.recursive_split(text, chunk_size=50, chunk_overlap=5)
+    text = "句子内容。" * 60  # 300 字
+    parts = chunking.recursive_split(text, chunk_size=50, chunk_overlap=0)
     assert len(parts) > 1
-    assert max(len(p) for p in parts) <= 60
-
+    assert max(len(p) for p in parts) <= 50

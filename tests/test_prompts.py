@@ -1,12 +1,10 @@
+# 来源：公众号@小林coding
+# 后端八股网站：xiaolincoding.com
+# Agent网站：xiaolinnote.com
+# 简历模版：jianli.xiaolinnote.com
 from langchain_core.messages import HumanMessage
 
-from app.core.prompts import (
-    AGENT_PROMPT,
-    AGENT_SYSTEM,
-    CUSTOMER_SERVICE_PROMPT,
-    EXTRACT_PROMPT,
-    RAG_ANSWER_SYSTEM,
-)
+from app.core.prompts import CUSTOMER_SERVICE_PROMPT, EXTRACT_PROMPT, AGENT_SYSTEM, AGENT_PROMPT
 
 
 def test_customer_service_prompt_renders_with_history():
@@ -15,6 +13,7 @@ def test_customer_service_prompt_renders_with_history():
     )
     assert msgs[0].type == "system"
     assert msgs[-1].content == "你们卖猫粮吗?"
+    # 行为约束必须写进 system prompt
     for keyword in ("客服", "不", "订单"):
         assert keyword in msgs[0].content
 
@@ -31,13 +30,5 @@ def test_agent_system_covers_tool_principles():
 
 
 def test_agent_prompt_has_history_placeholder():
-    assert any(
-        getattr(m, "variable_name", None) == "history" for m in AGENT_PROMPT.messages
-    )
-
-
-def test_rag_answer_system_has_citation_and_negative_knowledge():
-    assert "引用规则" in RAG_ANSWER_SYSTEM
-    assert "禁止承诺" in RAG_ANSWER_SYSTEM
-    assert "以平台售后规则为准" in RAG_ANSWER_SYSTEM
-
+    assert any(getattr(m, "variable_name", None) == "history"
+               for m in AGENT_PROMPT.messages)

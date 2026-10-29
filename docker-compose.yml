@@ -1,10 +1,7 @@
 services:
   mysql:
-    image: mysql:8.0
+    image: mysql:8   # 8.4 系;dev 数据卷自 ch02 起就是 8.4 的数据文件,钉 8.0 会拒绝降级启动
     container_name: mewhelp-mysql
-    # asyncmy 对 caching_sha2_password 的 RSA 公钥交换在部分环境会失败;
-    # 8.0 仍支持 mysql_native_password,统一用它对客户端最稳。
-    command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: mewhelp
@@ -12,13 +9,14 @@ services:
       - "3306:3306"
     volumes:
       - mewhelp-mysql-data:/var/lib/mysql
-      - ./sql:/docker-entrypoint-initdb.d:ro
+      - ./sql:/docker-entrypoint-initdb.d:ro   # 首启按文件名序执行 ch02-ddl.sql → ch02-seed.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
       interval: 3s
       timeout: 3s
       retries: 20
 
+  # ch04: Milvus Standalone(唯 Standalone 支持原生 BM25 全文检索)+ etcd + minio
   etcd:
     image: quay.io/coreos/etcd:v3.5.16
     container_name: mewhelp-milvus-etcd
@@ -52,13 +50,10 @@ services:
       retries: 3
 
   milvus-standalone:
-    image: milvusdb/milvus:v2.5.4
+    image: milvusdb/milvus:v2.6.22
     container_name: mewhelp-milvus
     command: ["milvus", "run", "standalone"]
-    security_opt:
-      - seccomp:unconfined
     environment:
-      MINIO_REGION: us-east-1
       ETCD_ENDPOINTS: etcd:2379
       MINIO_ADDRESS: minio:9000
     volumes:
@@ -81,4 +76,3 @@ volumes:
   mewhelp-milvus-etcd:
   mewhelp-milvus-minio:
   mewhelp-milvus-data:
-

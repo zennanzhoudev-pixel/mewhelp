@@ -1,6 +1,10 @@
+# 来源：公众号@小林coding
+# 后端八股网站：xiaolincoding.com
+# Agent网站：xiaolinnote.com
+# 简历模版：jianli.xiaolinnote.com
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ExtractRequest(BaseModel):
@@ -23,3 +27,11 @@ class AfterSalesTicket(BaseModel):
     )
     request_type: RequestType = Field(description="用户诉求类型")
     expected_solution: str = Field(description="用户期望的处理方案,一句话概括")
+
+    @field_validator("order_id", mode="before")
+    @classmethod
+    def _normalize_missing_order_id(cls, v: object) -> object:
+        # 模型偶尔把"没有订单号"表达成占位字符串而非省略参数,统一归一为 None
+        if isinstance(v, str) and v.strip().lower() in {"", "null", "none", "n/a", "无"}:
+            return None
+        return v
