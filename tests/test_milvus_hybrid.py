@@ -4,9 +4,10 @@ import uuid
 import pytest
 from pymilvus import MilvusClient
 
+from app.config import settings
 from app.kb import milvus_client as mc
 
-URI = "http://localhost:19530"
+URI = settings.milvus_uri
 
 
 def _milvus_up() -> bool:

@@ -3,11 +3,12 @@ import uuid
 import pytest
 from pymilvus import MilvusClient
 
+from app.config import settings
 from app.db import repository
 from app.kb import dualwrite, milvus_client as mc
 from app.kb.documents import Chunk
 
-URI = "http://localhost:19530"
+URI = settings.milvus_uri
 
 
 def _milvus_up() -> bool:

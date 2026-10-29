@@ -47,7 +47,8 @@ jobs:
           CHAT_API_KEY: test-chat-key
           EMBED_API_KEY: test-embed-key
           RERANK_API_KEY: test-rerank-key
-          DATABASE_URL: mysql+asyncmy://root:root@localhost:3306/mewhelp
-          TEST_DATABASE_URL: mysql+asyncmy://root:root@localhost:3306/mewhelp_test
-        run: uv run pytest -q
+          DATABASE_URL: mysql+asyncmy://root:root@127.0.0.1:3306/mewhelp
+          TEST_DATABASE_URL: mysql+asyncmy://root:root@127.0.0.1:3306/mewhelp_test
+          MILVUS_URI: http://127.0.0.1:19530
+        run: uv run pytest -q -rs
 
