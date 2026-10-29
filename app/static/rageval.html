@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MewHelp · RAG 评估</title>
+<link rel="stylesheet" href="/static/acceptance.css">
+<script src="/static/acceptance.js"></script>
+<script src="/static/admin.js"></script>
+</head>
+<body class="ah-body">
+<h2 style="padding:14px 18px 0;margin:0">RAG 评估 · 四策略对照</h2>
+<div class="ah-grid">
+  <div class="ah-card" style="grid-column:span 2">
+    <div id="meta" class="ah-muted"></div>
+    <button class="ah-btn primary" onclick="runEval()">重跑 RAG 评估</button>
+    <div id="log" class="ah-log" style="margin-top:10px"></div>
+  </div>
+  <div class="ah-card"><h3>检索质量(各策略分桶 MRR)</h3><div id="retrieval"></div></div>
+  <div class="ah-card"><h3>生成质量</h3><div id="generation"></div></div>
+</div>
+<script>
+  mountAdminNav("/rag-eval");
+  function fmt(n) { return n == null ? "—" : (typeof n === "number" ? n.toFixed(3) : n); }
+  async function load() {
+    const o = await ahApi("/api/rag-eval/overview");
+    if (!o.present) { document.getElementById("meta").textContent = "尚未跑过评估;按「重跑 RAG 评估」生成报告。"; return; }
+    document.getElementById("meta").textContent = "上次跑:" + (o.meta && o.meta.time || "") + " · 最佳策略:" + (o.best || "-");
+    const r = document.getElementById("retrieval");
+    const ret = o.retrieval || {};
+    r.innerHTML = "<table class='ah-table'><tr><th>桶\\策略</th>" + ["vector","bm25","hybrid","hybrid_rerank"].map(s=>`<th>${s}</th>`).join("") + "</tr>" +
+      Object.keys(ret).map(b => `<tr><td>${b}</td>` + ["vector","bm25","hybrid","hybrid_rerank"].map(s => `<td>${fmt((ret[b]||{})[s] && (ret[b]||{})[s].mrr)}</td>`).join("") + "</tr>").join("") + "</table>";
+    const g = document.getElementById("generation");
+    g.innerHTML = "<span class='ah-muted'>生成段 " + (o.generation_done ? "完成" : "本次未完成") + "</span><pre style='font-size:11px;max-height:220px;overflow:auto'>" + JSON.stringify(o.generation || {}, null, 1) + "</pre>";
+  }
+  async function runEval() {
+    const log = document.getElementById("log");
+    await ahRunJob("eval-rag", log, () => load());
+  }
+  load();
+</script>
+</body>
+</html>
+

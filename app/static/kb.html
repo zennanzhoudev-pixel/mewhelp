@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MewHelp · 知识库</title>
+<link rel="stylesheet" href="/static/acceptance.css">
+<script src="/static/acceptance.js"></script>
+</head>
+<body class="ah-body">
+<h2 style="padding:14px 18px 0;margin:0">知识库管理</h2>
+<div id="gate" class="ah-grid"></div>
+<div class="ah-grid">
+  <div class="ah-card" style="grid-column:span 2">
+    <h3>① 手工录入</h3>
+    <select id="ctype">
+      <option value="faq">faq</option><option value="policy">policy</option>
+      <option value="manual">manual</option><option value="spec">spec</option>
+    </select>
+    <textarea id="mtext" style="width:100%;min-height:120px;margin-top:8px" placeholder="粘贴 Markdown 正文"></textarea>
+    <div style="margin-top:8px">
+      <button class="ah-btn" onclick="doPreview()">切块预览</button>
+      <label style="font-size:13px"><input type="checkbox" id="vflag"> 入库后顺手向量化</label>
+      <button class="ah-btn primary" onclick="doIngest()">录入入库</button>
+    </div>
+    <div id="preview" style="margin-top:10px"></div>
+  </div>
+  <div class="ah-card">
+    <h3>② 建库材料 + 作业</h3>
+    <div id="sources" class="ah-muted"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+      <button class="ah-btn" onclick="runJob('kb-preview')">重跑 材料预览</button>
+      <button class="ah-btn" onclick="runJob('kb-build')">离线建库</button>
+      <button class="ah-btn" onclick="runJob('kb-vectorize')">向量化待补块</button>
+      <button class="ah-btn danger" onclick="if(confirm('清空知识库?'))runJob('kb-reset')">清库重建</button>
+      <button class="ah-btn danger" onclick="if(confirm('开始挖知识(调用 LLM)?'))runJob('kb-mine')">对话挖知识</button>
+    </div>
+    <div id="joblog" class="ah-log" style="margin-top:10px"></div>
+  </div>
+  <div class="ah-card">
+    <h3>③ 检索自测</h3>
+    <select id="strategy">
+      <option value="hybrid_rerank">hybrid_rerank</option>
+      <option value="vector">vector</option>
+      <option value="bm25">bm25</option>
+      <option value="hybrid">hybrid</option>
+    </select>
+    <input id="q" placeholder="问句,如:邮费是多少" style="width:70%;margin:8px 0">
+    <button class="ah-btn primary" onclick="doSearch()">检索</button>
+    <div id="searchOut" style="margin-top:8px"></div>
+  </div>
+</div>
+<script>
+  async function load() {
+    const o = await ahApi("/api/kb/overview");
+    const k = o.knowledge || {};
+    const consistent = o.consistent === null ? "读不到" : (o.consistent ? "一致" : "对不上");
+    const gate = document.getElementById("gate");
+    gate.innerHTML = `
+      <div class="ah-card"><div class="ah-num">${k.total ?? "-"}</div><div class="ah-muted">知识块数</div></div>
+      <div class="ah-card"><div class="ah-num">${k.pending ?? "-"}</div><div class="ah-muted">待向量化</div></div>
+      <div class="ah-card"><div class="ah-num">${o.milvus_count ?? "-"}</div><div class="ah-muted">Milvus 条数</div></div>
+      <div class="ah-card"><div class="ah-num">${k.key_clauses ?? "-"}</div><div class="ah-muted">关键条款</div></div>
+      <div class="ah-card"><div class="ah-num" style="font-size:16px">${consistent}</div><div class="ah-muted">双写一致性</div></div>`;
+    document.getElementById("sources").textContent = "材料:" + (o.sources || []).join(", ");
+  }
+  async function doPreview() {
+    const r = await ahApi("/api/kb/preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content_type: ctype.value, text: mtext.value }) });
+    document.getElementById("preview").innerHTML = "<table class='ah-table'><tr><th>问法</th><th>正文</th><th>标记</th></tr>" +
+      r.chunks.map(c => `<tr><td>${esc(c.questions)}<br><span class='ah-muted'>${esc(c.section_path||"")}</span></td><td>${esc(c.answer.slice(0,80))}…(${c.chars}字)</td><td>${c.is_key_clause?"关键":"-"} ${c.is_table?"表格":"-"} ${c.duplicate?"<b>重复</b>":"可入库"}</td></tr>`).join("") + "</table>";
+  }
+  async function doIngest() {
+    const r = await ahApi("/api/kb/ingest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content_type: ctype.value, text: mtext.value, vectorize: vflag.checked }) });
+    alert(`入库 ${r.inserted} 块,跳过 ${r.skipped} 块,向量化 ${r.vectorized} 块`); load();
+  }
+  async function doSearch() {
+    const r = await ahApi("/api/kb/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: q.value, strategy: strategy.value, top_k: 5 }) });
+    document.getElementById("searchOut").innerHTML = (r.hits || []).map(h => `<div class="ah-card" style="margin:6px 0"><b>[${h.id}] ${esc(h.question)}</b> <span class="ah-muted">${(h.score??h.rerank_score??0).toFixed(3)}</span><br><span class="ah-muted">${esc(h.section_path||"")}</span><br>${esc(h.answer)}</div>`).join("") || "无结果";
+  }
+  async function runJob(name) {
+    const log = document.getElementById("joblog");
+    await ahRunJob(name, log, () => load());
+  }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+  load();
+</script>
+</body>
+</html>
+

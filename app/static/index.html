@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MewHelp · 智能客服</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #ffffff; --ink: #1f2329; --muted: #8a919f;
+    --brand: #4f7cff; --border: #e5e7eb; --bubble-user: #4f7cff; --bubble-bot: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--ink); height: 100vh; display: flex; flex-direction: column;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px; background: var(--panel); border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 16px; margin: 0; }
+  header a { color: var(--brand); text-decoration: none; font-size: 13px; }
+  #messages { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; }
+  .row.user { justify-content: flex-end; }
+  .bubble {
+    max-width: 78%; padding: 10px 13px; border-radius: 12px; font-size: 14px; line-height: 1.65;
+    white-space: pre-wrap; word-break: break-word; box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  }
+  .row.user .bubble { background: var(--bubble-user); color: #fff; border-bottom-right-radius: 3px; }
+  .row.bot .bubble { background: var(--bubble-bot); border: 1px solid var(--border); border-bottom-left-radius: 3px; }
+  .bot-wrap { display: flex; flex-direction: column; max-width: 78%; }
+  .tool-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 5px; }
+  .tool-badge {
+    font-size: 12px; color: var(--muted); border: 1px dashed var(--border);
+    border-radius: 999px; padding: 2px 9px;
+  }
+  .cite {
+    color: var(--brand); cursor: pointer; font-weight: 600; margin: 0 1px;
+    vertical-align: super; font-size: 11px;
+  }
+  .cite:hover { text-decoration: underline; }
+  .cite-pop {
+    position: fixed; z-index: 50; background: #fff; border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; max-width: 360px; box-shadow: 0 8px 30px rgba(0,0,0,.15);
+    font-size: 13px; display: none;
+  }
+  .cite-pop .cite-path { font-weight: 600; color: var(--brand); margin-bottom: 6px; }
+  .cite-pop .cite-src { color: var(--muted); max-height: 180px; overflow-y: auto; }
+  .feedback { display: flex; gap: 8px; margin-top: 7px; align-items: center; }
+  .fb-btn {
+    border: 1px solid var(--border); background: #fff; border-radius: 8px; cursor: pointer;
+    padding: 3px 9px; font-size: 13px; color: var(--muted);
+  }
+  .fb-btn.active { background: #eaf1ff; color: var(--brand); border-color: var(--brand); }
+  .fb-btn.dim { opacity: .35; }
+  .fb-note { font-size: 12px; color: var(--muted); }
+  .action-bar { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .action-btn {
+    border: 1px solid var(--brand); color: var(--brand); background: #fff;
+    border-radius: 8px; padding: 6px 13px; cursor: pointer; font-size: 13px;
+  }
+  .action-btn:disabled { opacity: .45; cursor: not-allowed; }
+  .dots::after { content: ""; animation: blink 1s steps(4) infinite; }
+  @keyframes blink { 0%{content:""} 25%{content:"·"} 50%{content:"··"} 75%{content:"···"} }
+  footer {
+    padding: 12px 18px; background: var(--panel); border-top: 1px solid var(--border);
+    display: flex; gap: 10px;
+  }
+  footer textarea {
+    flex: 1; resize: none; border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 12px; font-size: 14px; font-family: inherit; min-height: 44px; max-height: 120px;
+  }
+  footer button {
+    background: var(--brand); color: #fff; border: 0; border-radius: 10px; padding: 0 18px;
+    cursor: pointer; font-size: 14px;
+  }
+  footer button:disabled { opacity: .6; cursor: not-allowed; }
+  .error { color: #d54941; }
+  table { border-collapse: collapse; margin: 6px 0; }
+  th, td { border: 1px solid var(--border); padding: 4px 8px; font-size: 13px; }
+  code { background: #f0f2f5; border-radius: 4px; padding: 1px 5px; font-size: 13px; }
+  pre { background: #f0f2f5; border-radius: 8px; padding: 8px 10px; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+  blockquote { border-left: 3px solid var(--border); margin: 6px 0; padding-left: 10px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🐱 喵喵优选 · 智能客服小喵</h1>
+  <div>
+    <a href="/kb">知识库</a> · <a href="/rag-eval">RAG 评估</a> · <a href="/admin">后台</a> ·
+    <a href="#" id="newChat">+ 新对话</a>
+  </div>
+</header>
+<div id="messages"></div>
+<div id="citePop" class="cite-pop"></div>
+<footer>
+  <textarea id="input" rows="1" placeholder="输入问题,回车发送(Shift+回车换行)"></textarea>
+  <button id="send">发送</button>
+</footer>
+<script>
+(function () {
+  const messagesEl = document.getElementById("messages");
+  const inputEl = document.getElementById("input");
+  const sendBtn = document.getElementById("send");
+  const citePop = document.getElementById("citePop");
+
+  function getUserId() {
+    let id = localStorage.getItem("mewhelp_user_id");
+    if (!id) { id = "u-" + Math.random().toString(36).slice(2, 10); localStorage.setItem("mewhelp_user_id", id); }
+    return id;
+  }
+  function getConversationId() {
+    const v = localStorage.getItem("mewhelp_conversation_id");
+    return v ? Number(v) : null;
+  }
+  function setConversationId(id) { localStorage.setItem("mewhelp_conversation_id", String(id)); }
+
+  document.getElementById("newChat").addEventListener("click", () => {
+    localStorage.removeItem("mewhelp_conversation_id");
+    messagesEl.innerHTML = "";
+  });
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  // 内联零依赖 markdown 渲染器:先转义防注入,再解析常用语法
+  function renderMarkdown(src) {
+    let s = escapeHtml(src);
+    const lines = s.split("\n");
+    let out = [];
+    let inCode = false, codeBuf = [];
+    let listBuf = null;
+    const flushList = () => { if (listBuf) { out.push(listBuf.tag + listBuf.items.join("") + listBuf.close); listBuf = null; } };
+    for (let line of lines) {
+      if (/^\s*```/.test(line)) {
+        flushList();
+        if (!inCode) { inCode = true; codeBuf = []; } else { out.push("<pre><code>" + codeBuf.join("\n") + "</code></pre>"); inCode = false; }
+        continue;
+      }
+      if (inCode) { codeBuf.push(line); continue; }
+      if (/^\s*[-*]\s+/.test(line)) { if (!listBuf || listBuf.tag !== "<ul>") { flushList(); listBuf = { tag: "<ul>", items: [], close: "</ul>" }; } listBuf.items.push("<li>" + inline(line.replace(/^\s*[-*]\s+/, "")) + "</li>"); continue; }
+      if (/^\s*\d+\.\s+/.test(line)) { if (!listBuf || listBuf.tag !== "<ol>") { flushList(); listBuf = { tag: "<ol>", items: [], close: "</ol>" }; } listBuf.items.push("<li>" + inline(line.replace(/^\s*\d+\.\s+/, "")) + "</li>"); continue; }
+      flushList();
+      if (/^\s*\|/.test(line) && lines[lines.indexOf(line) + 1] && /^\s*\|?[\s:|-]+\|?/.test(lines[lines.indexOf(line) + 1])) continue;
+      if (/^\s*#{1,4}\s+/.test(line)) { const n = line.match(/^#+/)[0].length; out.push(`<h${n}>` + inline(line.replace(/^\s*#+\s*/, "")) + `</h${n}>`); continue; }
+      if (/^\s*>\s?/.test(line)) { out.push("<blockquote>" + inline(line.replace(/^\s*>\s?/, "")) + "</blockquote>"); continue; }
+      if (/^\s*(---|\*\*\*)\s*$/.test(line)) { out.push("<hr>"); continue; }
+      if (line.trim() === "") { out.push("<br>"); continue; }
+      out.push("<div>" + inline(line) + "</div>");
+    }
+    flushList();
+    if (inCode) out.push("<pre><code>" + codeBuf.join("\n") + "</code></pre>");
+    return out.join("");
+  }
+
+  function inline(s) {
+    s = s.replace(/`([^`]+)`/g, (m, c) => "<code>" + c + "</code>");
+    s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+    s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    return s;
+  }
+
+  function addRow(kind) {
+    const row = document.createElement("div");
+    row.className = "row " + kind;
+    messagesEl.appendChild(row);
+    return row;
+  }
+
+  function addBadge(bubbleWrap, name) {
+    let bar = bubbleWrap.querySelector(".tool-badges");
+    if (!bar) { bar = document.createElement("div"); bar.className = "tool-badges"; bubbleWrap.prepend(bar); }
+    const b = document.createElement("span"); b.className = "tool-badge"; b.textContent = "🔧 调用了 " + name; bar.appendChild(b);
+  }
+
+  function attachCitations(bubbleWrap, citations) {
+    if (!citations || !citations.length) return;
+    bubbleWrap.querySelectorAll(".bubble .cite").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        const n = Number(el.dataset.n);
+        const c = citations.find((x) => x.n === n);
+        if (!c) return;
+        citePop.innerHTML = '<div class="cite-path">' + escapeHtml(c.section_path || c.question) + '</div>' +
+          '<div class="cite-src"><strong>问法:</strong> ' + escapeHtml(c.question || "") + '<br><br><strong>原文:</strong> ' + escapeHtml(c.answer || "") + "</div>";
+        citePop.style.display = "block";
+        const r = el.getBoundingClientRect();
+        citePop.style.left = Math.min(r.left, window.innerWidth - 380) + "px";
+        citePop.style.top = Math.max(8, r.top - 8) + "px";
+        e.stopPropagation();
+      });
+    });
+  }
+
+  function addFeedbackBar(bubbleWrap) {
+    if (bubbleWrap.querySelector(".feedback")) return;
+    const bar = document.createElement("div"); bar.className = "feedback";
+    const up = document.createElement("button"); up.className = "fb-btn"; up.textContent = "👍";
+    const down = document.createElement("button"); down.className = "fb-btn"; down.textContent = "👎";
+    const note = document.createElement("span"); note.className = "fb-note";
+    function lock(which, other) {
+      if (which.classList.contains("active")) return;
+      which.classList.add("active"); other.classList.add("dim");
+      which.disabled = true; other.disabled = true; note.textContent = "已反馈";
+    }
+    up.addEventListener("click", () => lock(up, down));
+    down.addEventListener("click", () => lock(down, up));
+    bar.append(up, down, note); bubbleWrap.appendChild(bar);
+  }
+
+  function renderActions(bubbleWrap, items) {
+    if (!items || !items.length) return;
+    const bar = document.createElement("div"); bar.className = "action-bar";
+    for (const a of items) {
+      const btn = document.createElement("button"); btn.type = "button"; btn.className = "action-btn";
+      if (a.type === "transfer_human") {
+        btn.textContent = "转人工";
+        btn.addEventListener("click", () => {
+          btn.disabled = true;
+          const sys = addRow("bot"); sys.innerHTML = '<div class="bot-wrap"><div class="bubble">已转接人工客服</div></div>';
+          const greet = addRow("bot"); greet.innerHTML = '<div class="bot-wrap"><div class="bubble">您好,我是客服小猫,请问有什么可以帮您的</div></div>';
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+        });
+      } else if (a.type === "create_ticket") {
+        btn.textContent = "建工单";
+        btn.addEventListener("click", async () => {
+          const type = prompt("反馈类别(售后 / 投诉 / 咨询)", "投诉");
+          const desc = prompt("反馈描述", (a.draft && a.draft.description) || "");
+          if (!type || !desc) return;
+          btn.disabled = true;
+          try {
+            const resp = await fetch("/api/actions/create-ticket", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ conversation_id: getConversationId(), description: desc, ticket_type: type }),
+            });
+            const data = await resp.json();
+            const ok = addRow("bot"); ok.innerHTML = '<div class="bot-wrap"><div class="bubble">' + (resp.ok ? ("工单已创建:" + data.ticket_no) : "工单创建失败,请稍后重试") + "</div></div>";
+          } catch (e) {
+            const ok = addRow("bot"); ok.innerHTML = '<div class="bot-wrap"><div class="bubble">工单创建失败,请稍后重试</div></div>';
+          }
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+        });
+      }
+      bar.appendChild(btn);
+    }
+    bubbleWrap.appendChild(bar);
+  }
+
+  async function streamChat(message) {
+    const userRow = addRow("user"); userRow.innerHTML = '<div class="bubble">' + escapeHtml(message) + "</div>";
+    const botRow = addRow("bot");
+    const bubbleWrap = document.createElement("div"); bubbleWrap.className = "bot-wrap";
+    const bubble = document.createElement("div"); bubble.className = "bubble dots"; bubble.textContent = "";
+    bubbleWrap.appendChild(bubble); botRow.appendChild(bubbleWrap);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    let raw = "";
+    let citations = [];
+    let textStarted = false;
+    const body = { user_id: getUserId(), message };
+    const cid = getConversationId(); if (cid) body.conversation_id = cid;
+    sendBtn.disabled = true;
+    try {
+      const resp = await fetch("/api/chat", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+      });
+      if (!resp.ok || !resp.body) throw new Error("HTTP " + resp.status);
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const parts = buf.split("\n\n");
+        buf = parts.pop();
+        for (const part of parts) {
+          const lines = part.split("\n");
+          let event = "message", data = "";
+          for (const line of lines) {
+            if (line.startsWith("event: ")) event = line.slice(7).trim();
+            else if (line.startsWith("data: ")) data += line.slice(6);
+          }
+          if (!data) continue;
+          if (event === "error") {
+            try { bubble.classList.remove("dots"); bubble.textContent = JSON.parse(data).message; bubble.classList.add("error"); } catch (e) { bubble.textContent = "出错了"; }
+            continue;
+          }
+          if (data === "[DONE]") continue;
+          let payload; try { payload = JSON.parse(data); } catch (e) { continue; }
+          if (payload.event === "tool") { addBadge(bubbleWrap, payload.name); }
+          else if (payload.event === "citations") { citations = payload.items || []; }
+          else if (payload.event === "actions") { renderActions(bubbleWrap, payload.items || []); }
+          else if (payload.event === "done") { setConversationId(payload.conversation_id); }
+          else if (payload.delta !== undefined) {
+            if (!textStarted) { bubble.classList.remove("dots"); bubble.textContent = ""; textStarted = true; }
+            raw += payload.delta;
+            bubble.textContent = "";
+            bubble.innerHTML = renderMarkdown(raw).replace(/\[(\d+)\]/g, '<sup class="cite" data-n="$1">[$1]</sup>');
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+          }
+        }
+      }
+    } catch (e) {
+      if (!textStarted) { bubble.classList.remove("dots"); bubble.textContent = "网络错误,请稍后重试"; bubble.classList.add("error"); }
+    } finally {
+      sendBtn.disabled = false;
+      if (textStarted) { bubble.classList.remove("dots"); addFeedbackBar(bubbleWrap); }
+      attachCitations(bubbleWrap, citations);
+    }
+  }
+
+  function send() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+    inputEl.value = "";
+    streamChat(text);
+  }
+  sendBtn.addEventListener("click", send);
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+  document.addEventListener("click", () => { citePop.style.display = "none"; });
+})();
+</script>
+</body>
+</html>
+

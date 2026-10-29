@@ -1,0 +1,13 @@
+.ah-body { margin:0; background:#f5f6f8; color:#1f2329; font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; }
+.ah-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+.ah-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; padding:18px; }
+.ah-btn { border:1px solid #4f7cff; color:#4f7cff; background:#fff; border-radius:8px; padding:6px 13px; cursor:pointer; font-size:13px; }
+.ah-btn.primary { background:#4f7cff; color:#fff; }
+.ah-btn.danger { border-color:#d54941; color:#d54941; }
+.ah-btn:disabled { opacity:.5; cursor:not-allowed; }
+.ah-log { background:#1f2329; color:#d7dce5; border-radius:8px; padding:10px 12px; font-family:ui-monospace,Menlo,monospace; font-size:12px; white-space:pre-wrap; max-height:280px; overflow-y:auto; }
+.ah-table { width:100%; border-collapse:collapse; font-size:13px; }
+.ah-table th,.ah-table td { border:1px solid #e5e7eb; padding:6px 9px; text-align:left; }
+.ah-num { font-size:22px; font-weight:600; }
+.ah-muted { color:#8a919f; font-size:12px; }
+

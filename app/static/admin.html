@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MewHelp · 后台总览</title>
+<link rel="stylesheet" href="/static/acceptance.css">
+<script src="/static/admin.js"></script>
+</head>
+<body class="ah-body">
+<h2 style="padding:14px 18px 0;margin:0">后台总览</h2>
+<div id="cards" class="ah-grid"></div>
+<script>
+  mountAdminNav("/admin");
+  (async function () {
+    const o = await fetch("/api/admin/overview").then(r => r.json());
+    const cards = o.cards || {};
+    const el = document.getElementById("cards");
+    const k = cards.knowledge || {};
+    el.innerHTML = `
+      <div class="ah-card"><h3>知识库</h3>${k.ok ? `<span class="pill ok">正常</span><div class="ah-num">${k.stats.total} 块</div><div class="ah-muted">Milvus ${k.milvus_count} 条 · 待向量化 ${k.stats.pending}</div>` : `<span class="pill off">读数失败</span>`}<div style="margin-top:8px"><a href="/kb">进入</a></div></div>
+      <div class="ah-card"><h3>RAG 评估</h3><span class="pill off">需先跑 eval-rag</span><div style="margin-top:8px"><a href="/rag-eval">进入</a></div></div>
+      <div class="ah-card"><h3>飞轮待审</h3><span class="pill off">留待 ch09</span></div>
+      <div class="ah-card"><h3>观测与成本</h3><span class="pill off">留待 ch09</span></div>`;
+  })();
+</script>
+</body>
+</html>
+
