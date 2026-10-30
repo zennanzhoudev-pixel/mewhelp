@@ -1,0 +1,38 @@
+name: Bug 报告
+description: 功能异常 / 报错 / 行为不符合预期
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "请勿粘贴真实密钥或个人数据。"
+  - type: textarea
+    id: what
+    attributes:
+      label: 现象
+      description: 你看到什么？期望是什么？
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 命令 / 请求 / 页面操作
+      placeholder: |
+        1. docker compose up -d
+        2. make dev
+        3. 打开 / 发送 ...
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: 环境
+      description: OS / Python / Docker / 模型上游（不要贴 key）
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志（已脱敏）
+      render: shell
