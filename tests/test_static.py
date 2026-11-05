@@ -13,7 +13,7 @@ def test_root_serves_chat_page():
     assert "/api/chat" in resp.text
     assert "session_id" in resp.text
     # 后台入口由 auth.js 按角色显隐;viewer 看不到,admin 和本地无鉴权模式可见
-    assert 'href="/admin"' in resp.text
+    assert 'href="/console"' in resp.text
     assert "data-admin-only" in resp.text
 
 
@@ -38,3 +38,16 @@ def test_admin_pages_are_reachable():
         assert "/static/admin.js" in resp.text, path    # 后台导航一份共用
     for asset in ("/static/admin.js", "/static/acceptance.js", "/static/acceptance.css"):
         assert client.get(asset).status_code == 200, asset
+
+
+def test_identity_and_support_pages_are_reachable():
+    for path, marker in (
+        ("/login", "扫码登录"),
+        ("/qr/approve", "确认登录"),
+        ("/console", "/api/admin/overview"),
+        ("/agent", "/api/support/workspace/queue"),
+        ("/admin/users", "/api/admin/users"),
+    ):
+        resp = client.get(path)
+        assert resp.status_code == 200, path
+        assert marker in resp.text, path

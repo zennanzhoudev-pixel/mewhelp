@@ -465,7 +465,7 @@
         <span class="status"><span class="dot-online"></span>ONLINE · 喵喵优选</span>
       </div>
       <div class="spacer"></div>
-      <a id="admin-link" class="admin-link" href="/admin" data-admin-only hidden>后台管理</a>
+      <a id="admin-link" class="admin-link" href="/console" data-admin-only hidden>管理控制台</a>
       <button id="new-chat" type="button">＋ 新对话</button>
     </header>
 
@@ -568,10 +568,14 @@
     const inputEl = document.getElementById("input");
     const sendBtn = document.getElementById("send");
     const newChatBtn = document.getElementById("new-chat");
+    let supportPollTimer = null;
+    let supportLastMessageId = 0;
 
     for (const el of document.querySelectorAll("[data-cat]")) el.innerHTML = CAT_SVG;
 
     function getUserId() {
+      const authId = window.MewHelpAuth && window.MewHelpAuth.getUserId();
+      if (authId) return authId;
       let id = localStorage.getItem(SESSION_KEY);
       if (!id) {
         id = crypto.randomUUID();
@@ -850,12 +854,22 @@
         btn.className = "action-btn";
         if (a.type === "transfer_human") {
           btn.textContent = "转人工";
-          btn.addEventListener("click", () => {
+          btn.addEventListener("click", async () => {
             btn.disabled = true;
-            // 纯前端模拟:显示已转接 + 客服小猫问候(本章不接真人系统)
-            const sys = addRow("bot"); sys.textContent = "已转接人工客服";
-            const greet = addRow("bot");
-            greet.textContent = "您好,我是客服小猫,请问有什么可以帮您的";
+            try {
+              const cid = getConversationId();
+              if (!cid) throw new Error("missing conversation");
+              const resp = await fetch("/api/support/request", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ conversation_id: cid, reason: "用户点击转人工" }),
+              });
+              if (!resp.ok) throw new Error("transfer failed");
+              addRow("bot").textContent = "已进入人工客服队列，正在为您匹配客服，请稍候。";
+              await beginSupportPolling(cid);
+            } catch (_) {
+              btn.disabled = false;
+              addRow("bot").textContent = "转人工失败，请稍后重试。";
+            }
             messagesEl.scrollTop = messagesEl.scrollHeight;
           });
         } else if (a.type === "create_ticket") {
@@ -1242,6 +1256,56 @@
         actions: [{ type: "transfer_human" }, { type: "create_ticket", draft: {} }] },
     ];
 
+    function stopSupportPolling() {
+      if (supportPollTimer) clearInterval(supportPollTimer);
+      supportPollTimer = null;
+    }
+
+    function renderHumanMessage(m) {
+      const bubble = addRow("bot");
+      const tag = document.createElement("div");
+      tag.className = "tool-badge";
+      tag.textContent = m.sender_type === "system" ? "系统通知" : "人工客服";
+      bubble.appendChild(tag);
+      const text = document.createElement("div");
+      text.className = "bubble-text";
+      text.innerHTML = renderMarkdown(m.content || "");
+      bubble.appendChild(text);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function beginSupportPolling(cid, silent) {
+      stopSupportPolling();
+      if (!cid) return;
+      const statusResp = await fetch("/api/support/" + cid + "/status").catch(() => null);
+      if (!statusResp || !statusResp.ok) return;
+      let status = await statusResp.json();
+      if (status.status !== "已转人工") return;
+      const replay = await fetch("/api/support/" + cid + "/messages?after_id=0").catch(() => null);
+      if (replay && replay.ok) {
+        const items = (await replay.json()).items || [];
+        supportLastMessageId = items.reduce((n, m) => Math.max(n, m.id || 0), 0);
+      }
+      supportPollTimer = setInterval(async () => {
+        try {
+          const r = await fetch(
+            "/api/support/" + cid + "/messages?after_id=" + supportLastMessageId
+          );
+          if (!r.ok) return;
+          const items = (await r.json()).items || [];
+          for (const m of items) {
+            supportLastMessageId = Math.max(supportLastMessageId, m.id || 0);
+            if (m.sender_type === "agent" || m.sender_type === "system") renderHumanMessage(m);
+          }
+          const sr = await fetch("/api/support/" + cid + "/status");
+          if (sr.ok) {
+            status = await sr.json();
+            if (status.status === "已结束") stopSupportPolling();
+          }
+        } catch (_) { /* 下个轮询周期重试 */ }
+      }, 2500);
+    }
+
     async function switchConversation(cid) {
       // 已是当前会话且聊天区有内容才跳过;页面刚刷新时聊天区是空的,点当前会话也要回载
       if (cid === getConversationId() && messagesEl.querySelector(".row")) return;
@@ -1260,11 +1324,18 @@
               textEl.className = "bubble-text";
               textEl.innerHTML = renderMarkdown(m.content);
               bubble.appendChild(textEl);
+              if (m.sender_type === "agent") {
+                const tag = document.createElement("div");
+                tag.className = "tool-badge";
+                tag.textContent = "人工客服";
+                bubble.insertBefore(tag, textEl);
+              }
               const hit = REPLAY_ACTIONS.find((ra) => m.content.trim() === ra.text);
               if (hit) renderActions(bubble, hit.actions);
               addFeedbackBar(bubble);   // 反馈条(👍/👎)回载也要有,和直播轮一致
             }
           }
+          await beginSupportPolling(cid, true);
         }
       } catch (e) { /* 历史加载失败仍可继续聊 */ }
       if (!messagesEl.children.length) renderEmptyState();
@@ -1287,6 +1358,7 @@
       }
     });
     newChatBtn.addEventListener("click", () => {
+      stopSupportPolling();
       clearConversationId();          // 开新会话:丢弃当前 conversation_id(旧会话仍在侧栏可切回)
       renderEmptyState();
       loadConversations();            // 清 active 高亮
@@ -1294,9 +1366,15 @@
     });
 
     getUserId();
+    if (getConversationId()) beginSupportPolling(getConversationId(), true);
     renderEmptyState();
     loadConversations();              // ch07:进页面先拉会话列表
     inputEl.focus();
+    window.addEventListener("mewhelp:auth-ready", () => {
+      renderEmptyState();
+      loadConversations();
+      if (getConversationId()) beginSupportPolling(getConversationId(), true);
+    });
   </script>
 </body>
 </html>

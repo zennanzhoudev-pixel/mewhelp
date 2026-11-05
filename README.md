@@ -36,13 +36,29 @@
 | 能力 | 状态 |
 | --- | --- |
 | 纯逻辑/单元测试（chunking、检索编排、意图分流、上下文、工具引擎、飞轮、taxonomy 等） | ✅ 本地可跑，无需外部服务 |
-| 全量测试套件（含 MySQL / Milvus / MCP 集成） | ✅ GitHub Actions CI 全绿（443 个测试） |
-| Web 应用与全部后台页面启动 | ✅ `uvicorn app.main:app` 可起，页面可达（无外部服务时会提示降级） |
+| 全量测试套件（含 MySQL / Milvus / MCP 集成） | ✅ 本地 **461 passed**；GitHub Actions 随 push 复跑 |
+| Web 应用、独立登录页与角色工作台 | ✅ 顾客聊天 `/`、客服 `/agent`、管理 `/console`、账号管理 `/admin/users` |
 | 真实对话 / 工具调用 / 检索 / 飞轮 / 评估 | ⚠️ 需要你填 `.env` 三组上游密钥，并起 MySQL + Milvus（+ Langfuse） |
 | ch10 训练 / ONNX 导出 | ⚠️ 重依赖走 `ml` 组，需 GPU/MPS 或较长时间 CPU 训练 |
-| 鉴权 / 多租户 / 限流 / 多副本 | ❌ 不在本仓库范围（演示版按 `user_id` 归属，无登录体系） |
+| 扫码 / 短信 / 密码登录、JWT、RBAC、多租户 | ✅ 代码完成；真实短信与企业 SSO 需配置短信网关或企业应用凭据 |
+| 人工客服闭环 | ✅ 顾客转人工 → 排队 → 客服认领 → 回复 → 顾客轮询接收 → 结束会话 |
 
 详细能力边界见 [docs/STATUS.md](docs/STATUS.md)。
+
+### 登录、角色与工作台
+
+| 角色 | 首页 | 权限 |
+| --- | --- | --- |
+| `customer` 顾客 | `/` | 与 AI 对话、查看自己的会话、转人工、提交反馈 |
+| `agent` 人工客服 | `/agent` | 查看租户内人工队列、认领、回复、释放、结束会话 |
+| `admin` 管理员 | `/console` | 账号与角色、知识库、评估、飞轮、观测、模型验收、客服工作台 |
+| `viewer` 兼容角色 | 无独立工作台 | 保留给接入方做只读审核扩展，当前不开放管理 API |
+
+- 独立登录页 `/login`：扫码确认、手机号验证码、账号密码三种方式。
+- 二维码是本系统的一次性确认登录，不依赖第三方；飞书/企微原生扫码属于企业 OAuth SSO，
+  需要在企业后台创建应用并注入凭据。
+- 短信采用 `console` / `webhook` 适配层：本地用控制台验证码，生产对接企业短信网关。
+- 账号菜单支持修改密码和退出登录；管理员可在 `/admin/users` 创建账号、分配角色、停用账号和重置密码。
 
 ## 3. 技术栈
 
@@ -55,14 +71,14 @@
 | 工具生态 | LangChain `@tool` + MCP（官方 Python SDK，Streamable HTTP） |
 | 可观测 | Langfuse 4 自部署（trace / cost） |
 | 模型微调 | RoBERTa-wwm-ext 全参微调 + ONNX Runtime |
-| 前端 | 原生 HTML/CSS/JS + SSE |
+| 前端 | 原生 HTML/CSS/JS + SSE；顾客端、客服端、管理端三套界面 |
 | 工程 | uv / pytest / GitHub Actions / Docker Compose |
 
 ## 4. 架构总览
 
 ```mermaid
 flowchart TB
-    UI["浏览器:聊天页 / 后台页(知识库·待审·观测·主题·验收)"] -->|"HTTP + SSE"| API["FastAPI app/api/*"]
+    UI["顾客 / 客服 / 管理员三端"] -->|"HTTP + SSE + JWT"| API["FastAPI app/api/*"]
 
     subgraph G["LangGraph 状态图 app/graph/"]
         RR["resolve_reference<br/>指代消解"] --> CI2["classify_intent<br/>意图识别"] --> RT{route_by_intent}
@@ -87,7 +103,7 @@ flowchart TB
     REG --> BUILTIN["内置 @tool<br/>订单/商品/FAQ/工单/退款"]
     REG --> MCP["MCP Server<br/>物流:8101 / 售后:8102"]
     RK --> MIL["Milvus<br/>dense + BM25 + RRF + rerank"]
-    API --> DB["MySQL<br/>12 张表"]
+    API --> DB["MySQL<br/>账号 / 客服 / 业务 / 知识 / 审计"]
     API -.可选.-> OBS["Langfuse 观测"]
 ```
 
@@ -129,6 +145,8 @@ docker compose up -d        # MySQL + Milvus Standalone
 make milvus-up              # 等 Milvus 健康检查通过
 make seed && make seed-conv # 业务 FAQ / 历史会话种子
 make kb-build && make kb-vectorize   # 建知识库并向量化
+# 已有 MySQL 数据卷升级到账号/人工客服表结构（幂等）
+make db-migrate
 ```
 
 ### 5.5 启动
@@ -137,7 +155,9 @@ make kb-build && make kb-vectorize   # 建知识库并向量化
 make dev
 ```
 
-浏览器打开 <http://localhost:8000>。部署细节与常见坑见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) 与 [DEPLOY.md](DEPLOY.md)。
+浏览器打开 <http://localhost:8000/login>。用管理员登录后进入 `/console`，在“账号与权限”
+创建客服账号；顾客可从登录页创建账号或由管理员分配。部署细节见
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) 与 [DEPLOY.md](DEPLOY.md)。
 
 ## 6. 配置
 
@@ -152,6 +172,8 @@ make dev
 | 编排 | `TOKEN_BUDGET` / `MAX_AGENT_STEPS` / `RERANK_TOP_K` / `EVIDENCE_CONFIDENCE_THRESHOLD` | 调优常量 |
 | 工具 | `MCP_LOGISTICS_URL` / `MCP_AFTERSALES_URL` / `TOOL_DEFAULT_TIMEOUT` | MCP 与超时 |
 | 可观测 | `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_BASE_URL` | 三者齐全才挂回调，缺省照常跑 |
+| 登录 | `AUTH_ENABLED` / `JWT_SECRET` / `PUBLIC_BASE_URL` | JWT、扫码可访问地址 |
+| 短信 | `SMS_PROVIDER` / `SMS_WEBHOOK_URL` / `SMS_WEBHOOK_TOKEN` | 本地 console；生产企业短信网关 |
 
 完整变量表与调参说明见 [docs/CONFIGURATION.md](docs/CONFIGURATION.md)。
 
@@ -201,7 +223,7 @@ docs/         架构/设计/接口/配置/测试/部署/合规/状态 + 各章 s
 ## 9. 测试
 
 ```bash
-make test          # 全量 pytest（需 MySQL + Milvus 起好；CI 全绿 443 个）
+make test          # 全量 pytest（需 MySQL + Milvus 起好；当前 461 个）
 make eval          # ch01 结构化提取标注样例
 make eval-agent    # ch02 工具选中标注样例
 make eval-retrieval# ch03 语义召回
@@ -243,6 +265,7 @@ make ch10-golden / ch10-eval
 | [docs/STATUS.md](docs/STATUS.md) | 能力状态矩阵与已知限制 |
 | [docs/FAQ.md](docs/FAQ.md) | 常见问题与踩坑 |
 | [docs/PRODUCTION.md](docs/PRODUCTION.md) | 生产加固清单(鉴权/限流/熔断/多副本等 8 项) |
+| [docs/IDENTITY-AND-SUPPORT.md](docs/IDENTITY-AND-SUPPORT.md) | 扫码/短信登录、多角色界面、账号管理与人工客服闭环 |
 | [docs/superpowers/](docs/superpowers/) | 各章 spec 与 implementation plan |
 | [DEPLOY.md](DEPLOY.md) | 面向 AI 编程助手的逐步部署任务书 |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 贡献流程与代码规范 |

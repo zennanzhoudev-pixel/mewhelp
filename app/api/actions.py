@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.core.access import can_access_conversation
 from app.db import repository
 from app.graph import runtime
 from app.schemas.actions import (
@@ -28,8 +29,9 @@ def _tenant(request: Request) -> str:
     return getattr(request.state, "tenant_id", None) or "default"
 
 
-async def _require_conversation(conversation_id: int, tenant_id: str) -> None:
-    if await repository.get_conversation(conversation_id, tenant_id) is None:
+async def _require_conversation(request: Request, conversation_id: int, tenant_id: str) -> None:
+    conv = await repository.get_conversation(conversation_id, tenant_id)
+    if conv is None or not can_access_conversation(request, conv):
         raise HTTPException(status_code=404, detail="会话不存在")
 
 
@@ -37,7 +39,7 @@ async def _require_conversation(conversation_id: int, tenant_id: str) -> None:
 async def create_ticket_action(req: CreateTicketRequest, request: Request) -> CreateTicketResponse:
     """建工单按钮:用户点了才写 tickets 表(复用 ch02 工单能力)。转人工是另一件事,纯前端。"""
     try:
-        await _require_conversation(req.conversation_id, _tenant(request))
+        await _require_conversation(request, req.conversation_id, _tenant(request))
         ticket_no = await repository.create_ticket(
             req.conversation_id, req.description, req.ticket_type)
     except SQLAlchemyError:
@@ -51,7 +53,7 @@ async def create_refund_action(req: CreateRefundRequest, request: Request) -> Cr
     """退款表单提交:写 tickets(ticket_type='退款'),描述带订单号 + 固定类目原因。复用 ch02 工单能力。"""
     desc = f"退款申请 订单号={req.order_id} 原因={req.reason}"
     try:
-        await _require_conversation(req.conversation_id, _tenant(request))
+        await _require_conversation(request, req.conversation_id, _tenant(request))
         ticket_no = await repository.create_ticket(req.conversation_id, desc, "退款")
     except SQLAlchemyError:
         logger.exception("退款单创建失败 conv=%s", req.conversation_id)

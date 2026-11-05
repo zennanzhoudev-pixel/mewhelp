@@ -79,7 +79,26 @@
 | `LANGFUSE_SECRET_KEY` | 空 | 同上 |
 | `LANGFUSE_BASE_URL` | 空 | 如 `http://localhost:3000` |
 
-## 8. `.env.example` 参考
+## 8. 登录、账号与人工客服
+
+| 变量 | 默认 | 说明 |
+| --- | --- | --- |
+| `AUTH_ENABLED` | `false` | 开启后业务 API 要求 Bearer JWT |
+| `JWT_SECRET` | 空 | 生产必须使用至少 32 字节随机值 |
+| `JWT_EXPIRE_MINUTES` | `720` | 登录有效期 |
+| `ADMIN_USER` / `ADMIN_PASSWORD` | `admin` / 空 | 首个管理员注册种子 |
+| `PUBLIC_BASE_URL` | 空 | 手机扫码访问的地址，生产填 HTTPS 域名 |
+| `SMS_PROVIDER` | `console` | `console` 本地联调；`webhook` 对接企业短信网关 |
+| `SMS_WEBHOOK_URL` | 空 | 接收 `{phone,text,purpose}` JSON 的网关地址 |
+| `SMS_WEBHOOK_TOKEN` | 空 | 网关 Bearer token |
+| `SMS_CODE_TTL_SECONDS` | `300` | 验证码有效期 |
+| `SMS_RESEND_SECONDS` | `60` | 重发冷却 |
+| `SMS_DEBUG_RETURN_CODE` | `false` | 仅本地可开；生产必须关闭 |
+
+角色：`customer` 顾客、`agent` 人工客服、`admin` 管理员；`viewer` 作为兼容角色保留。
+账号、角色、手机号及登录验证码表由 `sql/ch12-console.sql` 创建/扩展。
+
+## 9. `.env.example` 参考
 
 ```bash
 CHAT_BASE_URL=https://api.siliconflow.cn/v1
@@ -98,12 +117,20 @@ MCP_LOGISTICS_URL=http://127.0.0.1:8101/mcp
 MCP_AFTERSALES_URL=http://127.0.0.1:8102/mcp
 DEMO_TICKET_DELAY_SECONDS=0
 
+AUTH_ENABLED=true
+JWT_SECRET=用 openssl rand -hex 32 生成
+PUBLIC_BASE_URL=https://help.example.com
+SMS_PROVIDER=webhook
+SMS_WEBHOOK_URL=https://sms.example.com/send
+SMS_WEBHOOK_TOKEN=change-me
+SMS_DEBUG_RETURN_CODE=false
+
 # LANGFUSE_PUBLIC_KEY=pk-lf-mewhelp-local
 # LANGFUSE_SECRET_KEY=sk-lf-mewhelp-local
 # LANGFUSE_BASE_URL=http://localhost:3000
 ```
 
-## 9. 调参建议
+## 10. 调参建议
 
 - **回答太松/编造多**：降低 `RERANK_MIN_SCORE` 不适用——应调高；或调高 `EVIDENCE_CONFIDENCE_THRESHOLD`（先跑 `make calibrate-confidence` 重新校准）。
 - **召回不足**：先看 `make eval-rag` 的 Recall@5 与桶分布，再调 `RECALL_TOP_K` / 扩写，别直接堆 Top-K。

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<script src="/static/auth.js"></script>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>账号与权限 · MewHelp</title>
+  <style>
+    :root{--blue:#3370ff;--ink:#202636;--muted:#7f8797;--line:#e5e8ef;--bg:#f6f8fb}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}
+    .shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}.side{background:#fff;border-right:1px solid var(--line);padding:22px 15px;position:sticky;top:0;height:100vh}
+    .brand{font-weight:750;padding:0 10px 23px;display:flex;gap:9px;align-items:center}.mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#3370ff,#75a1ff);display:grid;place-items:center;color:#fff}
+    nav a{display:flex;gap:10px;text-decoration:none;color:#626b7d;padding:11px 12px;border-radius:9px;font-size:13px;margin:2px 0}nav a:hover{background:#f4f6fa}nav a.on{background:#eef3ff;color:#245bdb;font-weight:650}
+    main{min-width:0}.top{height:66px;display:flex;align-items:center;border-bottom:1px solid var(--line);background:rgba(246,248,251,.92);padding:0 190px 0 28px;position:sticky;top:0;z-index:2}.top b{font-size:15px}
+    .content{padding:27px;max-width:1400px;margin:auto}.head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px}.head h1{font-size:26px;margin:0 0 7px}.head p{margin:0;color:var(--muted);font-size:13px}
+    .primary{border:0;border-radius:9px;background:var(--blue);color:#fff;padding:10px 15px;font-size:13px;cursor:pointer;box-shadow:0 7px 18px rgba(51,112,255,.18)}
+    .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:13px}.search{height:38px;width:300px;border:1px solid #dfe3eb;background:#fff;border-radius:9px;padding:0 12px;font-size:13px;outline:none}.filter{height:38px;border:1px solid #dfe3eb;background:#fff;border-radius:9px;padding:0 12px;color:#596275;font-size:12px}.count{margin-left:auto;color:#929aaa;font-size:12px}
+    .table-wrap{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:auto}.table{width:100%;border-collapse:collapse;min-width:900px}.table th{text-align:left;font-size:11px;color:#8c94a4;font-weight:600;background:#fafbfc;padding:12px 15px;border-bottom:1px solid #eceef3}.table td{padding:14px 15px;border-bottom:1px solid #f0f2f5;font-size:12.5px;vertical-align:middle}.table tr:last-child td{border-bottom:0}.table tr:hover td{background:#fcfdff}
+    .person{display:flex;align-items:center;gap:10px}.avatar{width:34px;height:34px;border-radius:10px;background:#e9f0ff;color:#3370ff;display:grid;place-items:center;font-weight:750}.person b{display:block;font-size:13px}.person small{display:block;color:#949cab;font-size:10px;margin-top:2px}
+    select{height:30px;border:1px solid #e1e5ec;border-radius:7px;background:#fff;font:12px inherit;color:#424b5d;padding:0 7px}.badge{display:inline-block;padding:4px 8px;border-radius:12px;font-size:10px}.active{background:#e9f8ee;color:#248545}.disabled{background:#f1f2f5;color:#8991a1}
+    .ops{display:flex;gap:7px}.ops button{border:1px solid #e1e5ec;background:#fff;border-radius:7px;padding:5px 8px;color:#566173;font-size:10.5px;cursor:pointer}.ops button:hover{border-color:#a9c2ff;color:#245bdb}
+    .empty{padding:50px;text-align:center;color:#939baa}.loading{padding:35px;text-align:center;color:#8e97a8}
+    .mask{display:none;position:fixed;inset:0;background:rgba(30,40,60,.42);z-index:2000;align-items:center;justify-content:center}.mask.open{display:flex}.modal{width:420px;background:#fff;border-radius:17px;padding:24px;box-shadow:0 30px 80px rgba(0,0,0,.22)}.modal h2{font-size:18px;margin:0 0 16px}.field label{display:block;font-size:11px;color:#747e90;margin:10px 0 5px}.field input,.field select{width:100%;height:40px;border:1px solid #dfe3eb;border-radius:9px;padding:0 11px;font:13px inherit;box-sizing:border-box}.modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:19px}.modal-actions button{border:0;border-radius:9px;padding:9px 14px;font-size:12px;cursor:pointer}.cancel{background:#f1f3f7;color:#596276}.err{min-height:17px;color:#d54941;font-size:11px;margin-top:8px}
+    @media(max-width:900px){.shell{grid-template-columns:70px 1fr}.brand span:last-child,nav a span:last-child{display:none}nav a{justify-content:center}.top{padding-right:75px}.content{padding:18px 13px}.toolbar{flex-wrap:wrap}.count{width:100%;margin:0}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <div class="brand"><span class="mark">M</span><span>MewHelp 管理台</span></div>
+    <nav>
+      <a href="/console"><span>▦</span><span>工作台</span></a>
+      <a class="on" href="/admin/users"><span>♙</span><span>账号与权限</span></a>
+      <a href="/agent"><span>☏</span><span>人工客服</span></a>
+      <a href="/kb"><span>▤</span><span>知识库</span></a>
+      <a href="/observability"><span>⌁</span><span>数据与成本</span></a>
+    </nav>
+  </aside>
+  <main>
+    <div class="top"><b>账号与权限</b></div>
+    <div class="content">
+      <div class="head"><div><h1>成员与角色</h1><p>管理顾客、人工客服、只读审核员和管理员账号。</p></div><button class="primary" id="addBtn">＋ 添加成员</button></div>
+      <div class="toolbar">
+        <input class="search" id="search" placeholder="搜索姓名、用户名或手机号">
+        <select class="filter" id="roleFilter"><option value="">全部角色</option><option value="customer">顾客</option><option value="agent">人工客服</option><option value="admin">管理员</option></select>
+        <span class="count" id="count"></span>
+      </div>
+      <div class="table-wrap"><div id="list" class="loading">正在读取成员…</div></div>
+    </div>
+  </main>
+</div>
+<div class="mask" id="mask"><div class="modal">
+  <h2>添加成员</h2>
+  <div class="field"><label>用户名</label><input id="newUsername" placeholder="至少 3 位"></div>
+  <div class="field"><label>显示名称</label><input id="newDisplayName" placeholder="例如：售后客服小周"></div>
+  <div class="field"><label>手机号（选填，用于短信登录）</label><input id="newPhone" maxlength="11" inputmode="tel"></div>
+  <div class="field"><label>初始密码</label><input id="newPassword" type="password" placeholder="至少 8 位"></div>
+  <div class="field"><label>角色</label><select id="newRole"><option value="customer">顾客</option><option value="agent">人工客服</option><option value="admin">管理员</option></select></div>
+  <div class="err" id="newErr"></div>
+  <div class="modal-actions"><button class="cancel" id="cancel">取消</button><button class="primary" id="save">创建</button></div>
+</div></div>
+<script>
+  const $=(id)=>document.getElementById(id);
+  const roles={customer:"顾客",agent:"人工客服",viewer:"只读审核",admin:"管理员"};
+  let users=[];
+  function esc(v){return String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));}
+  async function api(path,options){const r=await fetch(path,options);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||("HTTP "+r.status));return d;}
+  async function load(){
+    try{const d=await api("/api/admin/users");users=d.items;render();}
+    catch(e){$("list").className="empty";$("list").textContent="读取失败："+e.message;}
+  }
+  function render(){
+    const q=$("search").value.trim().toLowerCase(), rf=$("roleFilter").value;
+    const rows=users.filter(u=>(!rf||u.role===rf)&&(!q||[u.username,u.display_name,u.phone].filter(Boolean).some(v=>String(v).toLowerCase().includes(q))));
+    $("count").textContent=`共 ${rows.length} 位成员`;
+    if(!rows.length){$("list").className="empty";$("list").textContent="没有符合条件的成员";return;}
+    $("list").className="";$("list").innerHTML=`<table class="table"><thead><tr><th>成员</th><th>手机号</th><th>角色</th><th>状态</th><th>最近登录</th><th>操作</th></tr></thead><tbody>${rows.map(u=>`
+      <tr data-id="${u.id}">
+        <td><div class="person"><span class="avatar">${esc((u.display_name||u.username||"U").slice(0,1).toUpperCase())}</span><div><b>${esc(u.display_name||u.username)}</b><small>@${esc(u.username)}</small></div></div></td>
+        <td>${esc(u.phone||"—")}</td>
+        <td><select data-op="role">${Object.entries(roles).map(([k,v])=>`<option value="${k}" ${u.role===k?"selected":""}>${v}</option>`).join("")}</select></td>
+        <td><span class="badge ${u.status}">${u.status==="active"?"正常":"已停用"}</span></td>
+        <td>${esc((u.last_login_at||"—").replace("T"," ").slice(0,19))}</td>
+        <td><div class="ops"><button data-op="toggle">${u.status==="active"?"停用":"启用"}</button><button data-op="reset">重置密码</button></div></td>
+      </tr>`).join("")}</tbody></table>`;
+    $("list").querySelectorAll("tr[data-id]").forEach(tr=>{
+      const id=Number(tr.dataset.id),user=users.find(u=>u.id===id);
+      tr.querySelector("[data-op=role]").addEventListener("change",async e=>{try{await api("/api/admin/users/"+id,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({role:e.target.value})});await load();}catch(err){alert(err.message);e.target.value=user.role;}});
+      tr.querySelector("[data-op=toggle]").addEventListener("click",async()=>{try{await api("/api/admin/users/"+id,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:user.status==="active"?"disabled":"active"})});await load();}catch(err){alert(err.message);}});
+      tr.querySelector("[data-op=reset]").addEventListener("click",async()=>{const p=prompt("输入新密码（至少 8 位）");if(!p)return;try{await api("/api/admin/users/"+id+"/reset-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({new_password:p})});alert("密码已重置");}catch(err){alert(err.message);}});
+    });
+  }
+  $("search").addEventListener("input",render);$("roleFilter").addEventListener("change",render);
+  $("addBtn").addEventListener("click",()=>{$("newErr").textContent="";$("mask").classList.add("open");});
+  $("cancel").addEventListener("click",()=>$("mask").classList.remove("open"));
+  $("mask").addEventListener("click",e=>{if(e.target===$("mask"))$("mask").classList.remove("open");});
+  $("save").addEventListener("click",async()=>{
+    $("newErr").textContent="";
+    try{await api("/api/admin/users",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      username:$("newUsername").value.trim(),display_name:$("newDisplayName").value.trim()||null,
+      phone:$("newPhone").value.trim()||null,password:$("newPassword").value,role:$("newRole").value
+    })});$("mask").classList.remove("open");await load();}catch(e){$("newErr").textContent=e.message;}
+  });
+  window.addEventListener("mewhelp:auth-ready",load);
+  if(window.MewHelpAuth.getIdentity())load();
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 # (知识库、评估集)会抛 UnicodeDecodeError。必须在 Python 启动前生效,所以设在这里而不是 .env。
 export PYTHONUTF8 = 1
 
-.PHONY: help kb-repatch dev test eval eval-check judge-check seed db-wait eval-ch07 eval-agent kb-preview kb-build kb-vectorize kb-mine eval-retrieval seed-conv eval-mining kb-reset milvus-up milvus-down smoke-rag eval-rag smoke-interrupt eval-ch06 mcp-up mcp-down langfuse-up langfuse-down retention
+.PHONY: help kb-repatch dev test eval eval-check judge-check seed db-wait db-migrate eval-ch07 eval-agent kb-preview kb-build kb-vectorize kb-mine eval-retrieval seed-conv eval-mining kb-reset milvus-up milvus-down smoke-rag eval-rag smoke-interrupt eval-ch06 mcp-up mcp-down langfuse-up langfuse-down retention
 
 # 目标一多就记不住谁要什么前置条件,带 ## 注释的挑出来列一遍
 help:  ## 列出带说明的目标
@@ -124,6 +124,14 @@ db-wait:  ## 等 MySQL 就绪(容器首启跑 init 脚本期间直接 seed 会�
 
 seed: db-wait
 	docker exec -i mewhelp-mysql mysql --default-character-set=utf8mb4 -uroot -proot mewhelp < sql/ch02-seed.sql
+
+db-migrate: db-wait  ## 老库升级账号、二维码与人工客服表结构(幂等)
+	@if docker exec mewhelp-mysql mysql -N -uroot -proot mewhelp -e "SHOW COLUMNS FROM users LIKE 'phone'" 2>/dev/null | grep -q phone; then \
+	  echo "ch12 已应用,跳过"; \
+	else \
+	  docker exec -i mewhelp-mysql mysql --default-character-set=utf8mb4 -uroot -proot mewhelp < sql/ch12-console.sql; \
+	  echo "ch12 迁移完成"; \
+	fi
 
 retention:  ## ch11 数据保留期清理(需 MySQL;RETENTION_DAYS_* 配置)
 	PYTHONPATH=. uv run --no-sync python scripts/retention.py

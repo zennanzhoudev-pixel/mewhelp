@@ -4,6 +4,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Request
 
+from app.core.access import can_access_conversation
 from app.db import repository
 from app.graph import runtime
 from app.schemas.feedback import FeedbackRequest, FeedbackResponse
@@ -19,7 +20,8 @@ def _same_question(a: str, b: str) -> bool:
 @router.post("/api/feedback", response_model=FeedbackResponse)
 async def submit_feedback(req: FeedbackRequest, request: Request) -> FeedbackResponse:
     tenant_id = getattr(request.state, "tenant_id", None) or "default"
-    if await repository.get_conversation(req.conversation_id, tenant_id) is None:
+    conv = await repository.get_conversation(req.conversation_id, tenant_id)
+    if conv is None or not can_access_conversation(request, conv):
         raise HTTPException(status_code=404, detail="会话不存在")
     if req.rating == "up":
         logger.info("feedback up conv=%s q=%r(只记日志,不落库)", req.conversation_id, req.question[:40])

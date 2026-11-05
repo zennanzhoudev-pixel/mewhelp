@@ -7,8 +7,11 @@
 | 项目 | 证据 |
 | --- | --- |
 | 纯逻辑单测（chunking/去重/路由/停止条件/工具引擎/上下文/飞轮/taxonomy 等） | 本地可跑，无外部服务 |
-| 全量测试（含 MySQL / Milvus / MCP 集成） | 本地：**454 passed**；GitHub Actions 随每次 push 复跑 |
-| Web 应用启动与页面 | `uvicorn app.main:app` 可起；10 个聊天/后台页面均返回 200 |
+| 全量测试（含 MySQL / Milvus / MCP 集成） | 本地：**461 passed**；GitHub Actions 随每次 push 复跑 |
+| Web 应用启动与页面 | 顾客端、独立登录、客服工作台、管理控制台、账号与原有后台页面均可达 |
+| 登录方式 | 用户名密码、手机号一次性验证码、二维码手机确认 |
+| 多角色界面 | `customer → /`、`agent → /agent`、`admin → /console` |
+| 人工客服 | 转人工、排队、认领、回复、顾客增量接收、释放与结束会话 |
 | 后台权限 | `admin` 可访问全部管理 API；`viewer` 返回 403；无 token 返回 401 |
 | 租户隔离 | 会话历史、续跑、工单、退款、反馈均带租户校验；跨租户返回 404 |
 | 知识库切块（真实 6 份文档） | 52 块（faq 15 / policy 15 / manual 8 / spec 14），表格复制表头、关键条款识别 |
@@ -39,6 +42,7 @@
 - ch10 17 类多标签分类器、语料/训练/评测/ONNX/旁路归类
 - ch11 生产加固：JWT/PBKDF2、RBAC、Redis 限流、熔断、Postgres checkpointer、
   语义历史、Skill、保留期、PII 脱敏、审计哈希链、TLS/监控/备份部署产物
+- ch12 身份与协同：独立登录页、账号管理、四种兼容角色、真实人工客服工作台
 
 ## 4. 明确未实现
 

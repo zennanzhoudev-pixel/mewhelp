@@ -44,8 +44,16 @@ def test_list_messages_serializes_dialog(conv_client, monkeypatch):
         return object()
 
     async def fake_msgs(cid):
-        return [SimpleNamespace(role="user", content="订单1001到哪了", created_at=None),
-                SimpleNamespace(role="assistant", content="在路上", created_at=None)]
+        return [
+            SimpleNamespace(
+                id=1, role="user", content="订单1001到哪了", sender_type="user",
+                sender_id=7, created_at=None,
+            ),
+            SimpleNamespace(
+                id=2, role="assistant", content="在路上", sender_type="ai",
+                sender_id=None, created_at=None,
+            ),
+        ]
     monkeypatch.setattr(api.repository, "get_conversation", fake_get)
     monkeypatch.setattr(api.repository, "list_dialog_messages", fake_msgs)
 

@@ -8,9 +8,13 @@
 - 开:`AUTH_ENABLED=true` + 设置 `JWT_SECRET`(强随机)。
 - 接口:`POST /api/auth/register`、`POST /api/auth/login`、`GET /api/auth/me`。
 - 首管理员:把 `ADMIN_USER`/`ADMIN_PASSWORD` 配好,注册同名用户即得 `admin` 角色。
+- 登录页:`/login` 提供二维码确认、手机号验证码、账号密码三种方式。二维码由本系统一次性票据实现;若要直接使用飞书/企微扫码,需在企业后台创建 OAuth 应用并新增 provider。
+- 短信:本地 `SMS_PROVIDER=console`;生产配置 `webhook`、`SMS_WEBHOOK_URL` 和 token,并保持 `SMS_DEBUG_RETURN_CODE=false`。
 - RBAC:知识库、RAG 评估、待审队列、观测、主题、分类器验收、后台作业和 `/api/admin/*` 统一要求 `admin`;`viewer` 调用返回 403,无 token 返回 401。
-- 页面入口:聊天页右上角「后台管理」按角色显隐;直接打开后台页面时也会校验角色并跳回聊天页。真正的权限边界在后端 API。
-- 多租户:中间件把 token 里的 `tenant` 写入 `request.state.tenant_id`;会话列表、历史、续跑、工单、退款和反馈均校验会话所属租户,跨租户统一返回 404。
+- 角色界面:`customer → /`、`agent → /agent`、`admin → /console`;账号菜单按角色展示入口,直接访问无权限页面会被前端送回各自首页,后端仍做最终校验。
+- 账号管理:管理员在 `/admin/users` 创建成员、分配角色、启停账号和重置密码。
+- 多租户与用户归属:中间件每次请求从数据库校验账号状态和当前角色;跨租户访问返回 404,顾客访问同租户其他顾客的会话/工单/反馈同样返回 404。
+- 数据库升级:已有库执行一次 `mysql ... < sql/ch12-console.sql`;全新环境由 MySQL 初始化目录按文件名顺序执行。
 
 ## 2. 限流 / 熔断 / 多副本
 

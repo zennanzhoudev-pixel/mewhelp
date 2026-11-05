@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录 · MewHelp</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='7' fill='%233370ff'/><path d='M7 8h10v7H9l-2 2V8z' fill='white'/></svg>">
+  <style>
+    :root{--blue:#3370ff;--blue2:#6b9cff;--ink:#1f2635;--muted:#7c8598;--line:#e6e9f0;--soft:#f5f7fb}
+    *{box-sizing:border-box}html,body{height:100%;margin:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);
+      background:radial-gradient(circle at 12% 10%,#eef4ff 0,transparent 33%),radial-gradient(circle at 90% 88%,#edf4ff 0,transparent 35%),#f8f9fc}
+    .page{min-height:100%;display:grid;grid-template-columns:minmax(420px,1.2fr) minmax(420px,.8fr);align-items:center;gap:5vw;padding:6vh 8vw}
+    .brand-panel{position:relative;min-height:620px;display:flex;flex-direction:column;justify-content:space-between;padding:36px 0 20px}
+    .brand{display:flex;align-items:center;gap:12px;font-size:20px;font-weight:750}.brand-mark{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,#3370ff,#79a4ff);display:grid;place-items:center;box-shadow:0 10px 28px rgba(51,112,255,.24)}
+    .brand-mark svg{width:23px;height:23px}
+    .hero-copy{max-width:540px;margin-top:40px}.hero-copy h1{font-size:46px;line-height:1.14;letter-spacing:-1.8px;margin:0 0 18px}.hero-copy h1 span{color:var(--blue)}
+    .hero-copy p{font-size:16px;line-height:1.8;color:var(--muted);margin:0;max-width:480px}
+    .hero-art{position:relative;width:100%;max-width:560px;height:245px;margin-top:35px;border-radius:28px;overflow:hidden;background:linear-gradient(135deg,#edf3ff,#fff);border:1px solid #e0e8fa}
+    .orb{position:absolute;border-radius:50%;filter:blur(1px)}.orb.a{width:160px;height:160px;background:#dbe8ff;right:50px;top:-30px}.orb.b{width:95px;height:95px;background:#c7dafd;left:74px;bottom:-30px}
+    .float-card{position:absolute;background:rgba(255,255,255,.92);border:1px solid #e2e8f4;border-radius:16px;box-shadow:0 18px 45px rgba(49,82,150,.12);padding:14px 16px}
+    .float-card.one{left:50px;top:44px;width:220px}.float-card.two{right:54px;bottom:35px;width:190px}
+    .float-card b{font-size:13px;display:block}.float-card small{display:block;margin-top:6px;color:#8a93a6;font-size:11px;line-height:1.6}
+    .bot-line{display:flex;align-items:center;gap:9px;margin-top:13px}.bot-dot{width:28px;height:28px;border-radius:9px;background:#3370ff;display:grid;place-items:center;color:#fff;font-size:12px}
+    .bars{display:flex;gap:5px;align-items:flex-end;height:32px;margin-top:12px}.bars i{display:block;width:13px;border-radius:4px 4px 2px 2px;background:#79a4ff}.bars i:nth-child(1){height:14px}.bars i:nth-child(2){height:25px}.bars i:nth-child(3){height:20px}.bars i:nth-child(4){height:31px}.bars i:nth-child(5){height:23px}
+    .brand-foot{color:#98a0b2;font-size:12px;display:flex;gap:20px}.brand-foot a{color:inherit;text-decoration:none}
+    .login-card{width:100%;max-width:470px;justify-self:center;background:rgba(255,255,255,.96);border:1px solid #e6e9ef;border-radius:24px;padding:34px 40px;box-shadow:0 28px 80px rgba(31,47,80,.13);backdrop-filter:blur(16px)}
+    .login-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:25px}.login-head h2{font-size:26px;margin:0 0 7px}.login-head p{margin:0;color:var(--muted);font-size:13px}.device{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#edf3ff;color:#3370ff}
+    .tabs{display:grid;grid-template-columns:repeat(3,1fr);background:#f2f4f8;border-radius:11px;padding:4px;margin-bottom:25px}.tabs button{border:0;background:transparent;padding:9px;border-radius:8px;color:#6f788a;font:13px/1.2 inherit;cursor:pointer}.tabs button.on{background:#fff;color:#245bdb;font-weight:650;box-shadow:0 2px 8px rgba(40,60,100,.08)}
+    .pane{display:none}.pane.on{display:block;animation:fade .15s ease}@keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+    .qr-wrap{display:grid;place-items:center;text-align:center}.qr-box{width:224px;height:224px;border-radius:18px;border:1px solid #e6e9f0;background:#fff;display:grid;place-items:center;overflow:hidden;position:relative}.qr-box img{width:210px;height:210px;display:block}
+    .qr-box .loading{color:#8992a5;font-size:13px}.qr-refresh{position:absolute;inset:0;background:rgba(255,255,255,.92);display:none;place-items:center;text-align:center;color:#5d6678;font-size:13px;line-height:1.7}.qr-refresh.show{display:grid}.qr-refresh button{border:0;background:var(--blue);color:#fff;border-radius:8px;padding:7px 12px;margin-top:8px;cursor:pointer}
+    .qr-tip{margin:17px 0 5px;font-weight:650;font-size:14px}.qr-sub{color:var(--muted);font-size:12px;line-height:1.65}.mobile-link{word-break:break-all;margin-top:8px;color:#a1a8b8;font-size:10px}
+    .field{position:relative;margin-bottom:13px}.field input{width:100%;height:44px;border:1px solid #dfe3eb;border-radius:10px;padding:0 13px;color:var(--ink);font-size:14px;background:#fff;outline:none;transition:.15s}.field input:focus{border-color:#7aa2ff;box-shadow:0 0 0 3px rgba(51,112,255,.1)}
+    .field.with-btn input{padding-right:112px}.sms-btn{position:absolute;right:6px;top:6px;height:32px;border:0;border-radius:7px;background:#eef3ff;color:#3370ff;font-size:12px;padding:0 11px;cursor:pointer}.sms-btn:disabled{color:#a1a8b8;background:#f3f4f7;cursor:not-allowed}
+    .primary{width:100%;height:44px;border:0;border-radius:10px;background:linear-gradient(135deg,#3370ff,#5b8cff);color:#fff;font:650 14px inherit;cursor:pointer;box-shadow:0 8px 20px rgba(51,112,255,.24)}.primary:disabled{opacity:.55;cursor:wait}
+    .secondary-line{display:flex;justify-content:space-between;align-items:center;margin:13px 0;font-size:12px;color:var(--muted)}.linkish{border:0;background:none;color:#3370ff;font:inherit;cursor:pointer;padding:0}
+    .msg{font-size:12px;line-height:1.5;min-height:18px;margin:9px 0 0;color:#d54941}.msg.ok{color:#218739}
+    .signup-fields{display:none}.signup-fields.on{display:block}.login-foot{text-align:center;color:#a0a7b6;font-size:11px;margin-top:22px;line-height:1.7}
+    .hidden{display:none!important}
+    @media(max-width:980px){.page{grid-template-columns:1fr;padding:28px 20px}.brand-panel{min-height:auto}.hero-copy,.hero-art,.brand-foot{display:none}.login-card{max-width:470px;padding:28px 24px}.brand{justify-content:center}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="brand-panel">
+      <div>
+        <div class="brand">
+          <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M5 7.5h14v8H9l-4 3v-11z" fill="white"/><circle cx="10" cy="11.5" r="1" fill="#3370ff"/><circle cx="14" cy="11.5" r="1" fill="#3370ff"/></svg></span>
+          MewHelp 智能客服
+        </div>
+        <div class="hero-copy">
+          <h1>让每一次服务<br><span>更聪明，也更有温度</span></h1>
+          <p>AI 自动解决高频问题，复杂问题一键转人工。顾客、客服、管理员在同一套安全体系下协同工作。</p>
+        </div>
+        <div class="hero-art">
+          <span class="orb a"></span><span class="orb b"></span>
+          <div class="float-card one"><b>AI 客服在线</b><small>知识库检索 · 订单查询 · 售后处理</small><div class="bot-line"><span class="bot-dot">喵</span><span style="font-size:12px;color:#596276">正在为你服务…</span></div></div>
+          <div class="float-card two"><b>今日服务效率</b><small>首次响应 1.2 秒</small><div class="bars"><i></i><i></i><i></i><i></i><i></i></div></div>
+        </div>
+      </div>
+      <div class="brand-foot"><span>© 2026 MewHelp</span><a href="/docs">接口文档</a><span>安全 · 稳定 · 可审计</span></div>
+    </section>
+
+    <section class="login-card">
+      <div class="login-head">
+        <div><h2>欢迎回来</h2><p>登录后继续使用 MewHelp</p></div>
+        <span class="device" title="桌面端登录">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </span>
+      </div>
+      <div class="tabs">
+        <button type="button" class="on" data-tab="qr">扫码登录</button>
+        <button type="button" data-tab="phone">手机号登录</button>
+        <button type="button" data-tab="password">账号密码</button>
+      </div>
+
+      <div class="pane on" data-pane="qr">
+        <div class="qr-wrap">
+          <div class="qr-box" id="qrBox"><div class="loading">正在生成二维码…</div><div class="qr-refresh" id="qrRefresh"><div>二维码已失效<br><button type="button" id="qrAgain">刷新二维码</button></div></div></div>
+          <div class="qr-tip">使用手机相机扫码确认登录</div>
+          <div class="qr-sub">二维码 2 分钟内有效。扫码后在手机端输入账号密码确认。</div>
+          <div class="mobile-link" id="mobileUrl"></div>
+        </div>
+      </div>
+
+      <div class="pane" data-pane="phone">
+        <div class="field"><input id="phone" inputmode="tel" maxlength="11" placeholder="请输入手机号" autocomplete="tel"></div>
+        <div class="field with-btn"><input id="smsCode" inputmode="numeric" maxlength="6" placeholder="6 位验证码"><button class="sms-btn" id="smsSend" type="button">获取验证码</button></div>
+        <button class="primary" id="phoneLogin" type="button">登录</button>
+        <p class="msg" id="phoneMsg"></p>
+      </div>
+
+      <div class="pane" data-pane="password">
+        <div class="signup-fields" id="signupFields">
+          <div class="field"><input id="displayName" placeholder="你的称呼" autocomplete="name"></div>
+          <div class="field"><input id="regPhone" inputmode="tel" maxlength="11" placeholder="手机号（选填）" autocomplete="tel"></div>
+        </div>
+        <div class="field"><input id="username" placeholder="用户名" autocomplete="username"></div>
+        <div class="field"><input id="password" type="password" placeholder="密码" autocomplete="current-password"></div>
+        <button class="primary" id="passwordLogin" type="button">登录</button>
+        <div class="secondary-line"><span id="modeHint">还没有账号？</span><button class="linkish" id="toggleSignup" type="button">创建顾客账号</button></div>
+        <p class="msg" id="passwordMsg"></p>
+      </div>
+
+      <div class="login-foot">客服、管理员账号由管理员统一分配<br>登录即表示你同意平台安全与隐私规范</div>
+    </section>
+  </main>
+
+  <script>
+    const TOKEN_KEY = "mewhelp_token";
+    const PROFILE_KEY = "mewhelp_profile";
+    let signupMode = false;
+    let qrTimer = null;
+    let qrTicket = "";
+    let currentTab = "qr";
+
+    function $(id) { return document.getElementById(id); }
+    function safeNext(role) {
+      const next = new URLSearchParams(location.search).get("next") || "";
+      if (next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/login")) return next;
+      return role === "admin" ? "/console" : role === "agent" ? "/agent" : "/";
+    }
+    function saveSession(data) {
+      localStorage.setItem(TOKEN_KEY, data.token || "");
+      const profile = {
+        user_id: data.user_id, username: data.username,
+        display_name: data.display_name || data.username, phone: data.phone || "",
+        tenant_id: data.tenant_id, role: data.role,
+        roles: data.roles || [data.role],
+      };
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    }
+    function done(data) {
+      saveSession(data);
+      location.replace(safeNext(data.role));
+    }
+    async function api(path, options) {
+      const r = await fetch(path, options);
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.detail || "请求失败");
+      return d;
+    }
+    async function redirectExisting() {
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (!token) return false;
+      try {
+        const me = await api("/api/auth/me", { headers: { Authorization: "Bearer " + token } });
+        saveSession({ ...me, token, role: me.role || (me.roles || [])[0] });
+        location.replace(safeNext(me.role || (me.roles || [])[0]));
+        return true;
+      } catch (_) {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(PROFILE_KEY);
+        return false;
+      }
+    }
+    function switchTab(name) {
+      currentTab = name;
+      document.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+      document.querySelectorAll("[data-pane]").forEach((p) => p.classList.toggle("on", p.dataset.pane === name));
+      if (name === "qr") startQr();
+      else stopQr();
+    }
+    function stopQr() {
+      if (qrTimer) clearInterval(qrTimer);
+      qrTimer = null;
+    }
+    async function startQr() {
+      stopQr();
+      $("qrRefresh").classList.remove("show");
+      try {
+        const d = await api("/api/auth/qr/start", { method: "POST" });
+        qrTicket = d.ticket;
+        const box = $("qrBox");
+        box.querySelector("img")?.remove();
+        const img = document.createElement("img");
+        img.alt = "扫码登录二维码";
+        img.src = d.qr_svg;
+        box.insertBefore(img, $("qrRefresh"));
+        $("mobileUrl").textContent = d.mobile_url;
+        let left = d.expires_in;
+        qrTimer = setInterval(async () => {
+          left -= 2;
+          if (left <= 0) {
+            stopQr();
+            $("qrRefresh").classList.add("show");
+            return;
+          }
+          try {
+            const s = await api("/api/auth/qr/" + encodeURIComponent(qrTicket) + "/status");
+            if (s.token) done(s);
+            else if (s.status === "expired" || s.status === "consumed") {
+              stopQr();
+              $("qrRefresh").classList.add("show");
+            }
+          } catch (_) {}
+        }, 2000);
+      } catch (e) {
+        $("qrBox").innerHTML = '<div class="loading">二维码暂不可用<br>请使用手机号或密码登录</div>';
+      }
+    }
+    $("qrAgain").addEventListener("click", startQr);
+    document.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+
+    $("smsSend").addEventListener("click", async () => {
+      const button = $("smsSend");
+      const msg = $("phoneMsg");
+      msg.textContent = ""; msg.className = "msg";
+      try {
+        const d = await api("/api/auth/sms/send", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: $("phone").value.trim() }),
+        });
+        msg.classList.add("ok");
+        msg.textContent = d.debug_code ? "本地验证码：" + d.debug_code : "验证码已发送";
+        let n = 60;
+        button.disabled = true;
+        const timer = setInterval(() => {
+          button.textContent = n + "s";
+          if (--n < 0) { clearInterval(timer); button.disabled = false; button.textContent = "获取验证码"; }
+        }, 1000);
+      } catch (e) { msg.textContent = e.message; }
+    });
+    $("phoneLogin").addEventListener("click", async () => {
+      const msg = $("phoneMsg"); msg.textContent = ""; msg.className = "msg";
+      try {
+        done(await api("/api/auth/sms/login", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: $("phone").value.trim(), code: $("smsCode").value.trim() }),
+        }));
+      } catch (e) { msg.textContent = e.message; }
+    });
+
+    $("toggleSignup").addEventListener("click", () => {
+      signupMode = !signupMode;
+      $("signupFields").classList.toggle("on", signupMode);
+      $("modeHint").textContent = signupMode ? "已有账号？" : "还没有账号？";
+      $("toggleSignup").textContent = signupMode ? "返回登录" : "创建顾客账号";
+      $("passwordLogin").textContent = signupMode ? "创建并登录" : "登录";
+    });
+    $("passwordLogin").addEventListener("click", async () => {
+      const msg = $("passwordMsg"); msg.textContent = ""; msg.className = "msg";
+      try {
+        if (signupMode) {
+          done(await api("/api/auth/register", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: $("username").value.trim(), password: $("password").value,
+              display_name: $("displayName").value.trim() || null,
+              phone: $("regPhone").value.trim() || null, tenant_id: "default",
+            }),
+          }));
+        } else {
+          done(await api("/api/auth/login", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: $("username").value.trim(), password: $("password").value }),
+          }));
+        }
+      } catch (e) { msg.textContent = e.message; }
+    });
+    $("password").addEventListener("keydown", (e) => { if (e.key === "Enter") $("passwordLogin").click(); });
+
+    (async () => {
+      const cfg = await api("/api/auth/config").catch(() => ({ auth_enabled: false }));
+      if (!cfg.auth_enabled) { location.replace("/"); return; }
+      if (!(await redirectExisting())) startQr();
+    })();
+  </script>
+</body>
+</html>

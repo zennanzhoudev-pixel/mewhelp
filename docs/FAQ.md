@@ -55,7 +55,7 @@ MySQL 存全字段原文（含章节路径、前后块指针、双写状态）�
 
 ## 测试为什么有跳过 / 失败？
 
-DB / Milvus / MCP 测试需要对应服务。本地没起服务时会跳过或报连接错；CI 里全部启动，所以是 443 全绿。先 `docker compose up -d && make milvus-up` 再 `make test`。
+DB / Milvus / MCP 测试需要对应服务。本地没起服务时会跳过或报连接错；CI 里全部启动，当前 461 个全绿。先 `docker compose up -d && make milvus-up` 再 `make test`。
 
 ## 能不能不装 Docker？
 

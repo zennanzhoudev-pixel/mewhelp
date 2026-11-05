@@ -128,7 +128,9 @@ def _interrupt_payload(state: dict):
 async def run_turn(user_id, message, conversation_id, tenant_id: str = "default") -> dict:
     """非流式:落 user 消息 → ainvoke → 返回终态(供 /api/agent、eval)。遇 interrupt 带 orders。"""
     cid, summary, upto = await _ensure_conversation(user_id, conversation_id, tenant_id)
-    msg_id = await repository.append_message(cid, "user", content=message)
+    msg_id = await repository.append_message(
+        cid, "user", content=message, sender_type="user"
+    )
     # ch09:langfuse_session_id 让同一会话多轮在 Langfuse 界面串成一组(未挂回调时无害)
     config = {"configurable": {"thread_id": str(cid)},
               "metadata": {"langfuse_session_id": str(cid)}}
@@ -203,7 +205,9 @@ async def stream_turn(user_id, message, conversation_id,
                       tenant_id: str = "default") -> AsyncIterator[dict]:
     """流式:落 user 消息 → astream 多模式 → 事件 dict(供 /api/chat 转 SSE)。"""
     cid, summary, upto = await _ensure_conversation(user_id, conversation_id, tenant_id)
-    msg_id = await repository.append_message(cid, "user", content=message)
+    msg_id = await repository.append_message(
+        cid, "user", content=message, sender_type="user"
+    )
     async for ev in _stream_events(cid, _graph_input(user_id, message, cid, msg_id, summary, upto)):
         yield ev
     await summarizer.maybe_schedule_summary(cid)   # ch07 流吐完再触发(后台跑,不阻塞)

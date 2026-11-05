@@ -4,6 +4,8 @@ from fastapi import APIRouter, HTTPException, Request
 from langchain_core.messages import AIMessage, ToolMessage
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.core.access import can_access_conversation
+from app.db import repository
 from app.graph import runtime
 from app.graph.nodes import resolve_answer
 from app.schemas.agent import AgentRequest, AgentResponse, ToolCallView, ToolResultView
@@ -29,17 +31,23 @@ def _views_from_state(state):
 @router.post("/api/agent", response_model=AgentResponse)
 async def run_agent(req: AgentRequest, request: Request) -> AgentResponse:
     tenant_id = getattr(request.state, "tenant_id", None) or "default"
+    identity = getattr(request.state, "user", None)
+    user_id = str(identity["sub"]) if identity else req.user_id
+    if identity is not None and req.conversation_id is not None:
+        conv = await repository.get_conversation(req.conversation_id, tenant_id)
+        if conv is None or not can_access_conversation(request, conv):
+            raise HTTPException(status_code=404, detail="会话不存在")
     try:
         out = await runtime.run_turn(
-            req.user_id, req.message, req.conversation_id, tenant_id=tenant_id
+            user_id, req.message, req.conversation_id, tenant_id=tenant_id
         )
     except runtime.ConversationNotFound:
         raise HTTPException(status_code=404, detail="会话不存在")
     except SQLAlchemyError:
-        logger.exception("数据库错误 user_id=%s", req.user_id)
+        logger.exception("数据库错误 user_id=%s", user_id)
         raise HTTPException(status_code=503, detail="数据库暂时不可用,请稍后重试")
     except Exception:
-        logger.exception("图编排失败 user_id=%s", req.user_id)
+        logger.exception("图编排失败 user_id=%s", user_id)
         raise HTTPException(status_code=502, detail="上游模型暂时不可用,请稍后重试")
 
     state = out["state"]

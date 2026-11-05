@@ -12,8 +12,8 @@
 
 ## 2. 规模
 
-- 测试文件：78 个；
-- CI 用例：**443 个全部通过**（GitHub Actions，含 MySQL 8 + Milvus Standalone + MCP Server）；
+- 测试文件：81 个；
+- CI 用例：**461 个全部通过**（GitHub Actions，含 MySQL 8 + Milvus Standalone + MCP Server）；
 - 评估集：`tests/data/eval_ch04.jsonl` 300 题（A 政策 / B 型号 / C 口语 / D 库外拒答 / E 跨文档，各 60）；
 - 飞轮样例：`tests/data/flywheel_samples.json` 35 条；
 - 其它样例：`extract_samples.json`、`intent`、`corp`、`mining_samples.json`、`query_rewrite_samples.jsonl`、`retrieval_samples.json`。
@@ -49,7 +49,7 @@ make flywheel-samples && make eval-flywheel
 make ch10-golden && make ch10-eval
 ```
 
-> 无外部服务时，纯逻辑测试仍可跑；DB/Milvus/MCP 测试需要对应服务。CI 里全部启动，所以是 443 全绿。
+> 无外部服务时，纯逻辑测试仍可跑；DB/Milvus/MCP 测试需要对应服务。CI 里全部启动，所以是 461 全绿。
 
 ## 5. CI
 

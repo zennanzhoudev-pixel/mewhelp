@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.acceptance import router as acceptance_router
 from app.api.actions import router as actions_router
 from app.api.admin import router as admin_router
+from app.api.admin_users import router as admin_users_router
 from app.api.agent import router as agent_router
 from app.api.auth import router as auth_router
 from app.api.chat import router as chat_router
@@ -21,6 +22,7 @@ from app.api.kb import router as kb_router
 from app.api.observability import router as observability_router
 from app.api.rageval import router as rageval_router
 from app.api.review import router as review_router
+from app.api.support import router as support_router
 from app.api.topics import router as topics_router
 from app.core.auth_middleware import AuthMiddleware
 from app.core.ratelimit_middleware import RateLimitMiddleware
@@ -71,7 +73,7 @@ async def lifespan(app: FastAPI):
     await runtime.close_graph()
 
 
-app = FastAPI(title="MewHelp", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="MewHelp", version="0.3.0", lifespan=lifespan)
 app.add_middleware(AuthMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.include_router(auth_router)
@@ -88,7 +90,9 @@ app.include_router(kb_router)
 app.include_router(rageval_router)
 app.include_router(observability_router)
 app.include_router(admin_router)
+app.include_router(admin_users_router)
 app.include_router(jobs_router)
+app.include_router(support_router)
 
 # 后台各页共用外壳(样式 + 取数/重跑脚本 + 导航),抽成文件放静态目录
 app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
@@ -97,6 +101,31 @@ app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 @app.get("/", include_in_schema=False)
 async def chat_page() -> FileResponse:
     return FileResponse(_STATIC_DIR / "index.html")
+
+
+@app.get("/login", include_in_schema=False)
+async def login_page() -> FileResponse:
+    return FileResponse(_STATIC_DIR / "login.html")
+
+
+@app.get("/qr/approve", include_in_schema=False)
+async def qr_approve_page() -> FileResponse:
+    return FileResponse(_STATIC_DIR / "qr-approve.html")
+
+
+@app.get("/console", include_in_schema=False)
+async def console_page() -> FileResponse:
+    return FileResponse(_STATIC_DIR / "console.html")
+
+
+@app.get("/agent", include_in_schema=False)
+async def agent_workspace_page() -> FileResponse:
+    return FileResponse(_STATIC_DIR / "agent-workspace.html")
+
+
+@app.get("/admin/users", include_in_schema=False)
+async def admin_users_page() -> FileResponse:
+    return FileResponse(_STATIC_DIR / "admin-users.html")
 
 
 @app.get("/admin", include_in_schema=False)

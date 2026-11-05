@@ -15,18 +15,22 @@ MewHelp 追求的不是「一个大 Agent 包打天下」，而是：
 
 | 层 | 技术 | 职责 |
 | --- | --- | --- |
-| 交互层 | 原生 HTML/CSS/JS + SSE | 聊天页、订单选择器、工单预览、知识库/待审/观测/主题后台 |
+| 交互层 | 原生 HTML/CSS/JS + SSE | 顾客聊天、独立登录、客服工作台、账号管理与运营后台 |
 | 服务层 | FastAPI | HTTP 接口、SSE 流、参数校验、错误分层（404/422/502/503） |
+| 身份层 | JWT + PBKDF2 + RBAC | 扫码/短信/密码登录、用户状态、租户与 `customer/agent/admin` 角色 |
 | 编排层 | LangGraph `StateGraph` | 确定性 Workflow 骨架 + ReAct 环；会话状态与中断恢复 |
 | 检索层 | Milvus + BGE-M3 + bge-reranker | dense + BM25 混合召回、RRF、精排、置信度 |
 | 工具层 | 注册中心 + 执行引擎 + MCP | 统一校验/权限/超时/重试/格式化/审计 |
-| 存储层 | MySQL | 会话、消息、知识、工单、审计、问题池、待审、评估、主题 |
+| 存储层 | MySQL | 用户、验证码、二维码票据、会话、人工客服、消息、知识、工单、审计、问题池、待审、评估、主题 |
 | 支撑层 | Langfuse + 飞轮 + RoBERTa 分类器 | 全链路可观测、成本、数据闭环、主题归类 |
 
 ## 3. 一条消息的旅程
 
 ```
 POST /api/chat (SSE)
+  → AuthMiddleware(JWT → 数据库校验账号状态/角色/租户)
+  → 会话归属校验(customer 只能访问自己的会话)
+  → 若会话已转人工:只落用户消息,等待 /api/support 客服回复
   → runtime.stream_turn
     → 建/取会话(MySQL conversations) → 落 user 消息
     → graph.astream(stream_mode=["messages","updates"])
@@ -190,7 +194,9 @@ DDL 在 `sql/ch02-ddl.sql` … `sql/ch10-ddl.sql`，容器首启按文件名顺�
 
 ## 13. 边界与非目标
 
-- 演示版无登录/鉴权、多租户、限流、多副本；
+- 已提供 JWT、扫码/短信/密码登录、RBAC、租户隔离、Redis 限流与 Postgres checkpointer 多副本方案；
+- 飞书/企微原生扫码属于企业 OAuth SSO，需要企业应用凭据；本仓库内置的是本系统一次性二维码确认；
+- 手机短信发送通过 `webhook` 对接企业网关，本地 `console` 模式只用于联调；
 - 订单/物流/售后数据为 mock（入参稳定随机），不接真实电商/物流系统；
-- 意图识别的小模型降级路只留配置种子，运行时统一用大模型；
-- ch11（全链路复盘）与 ch12（简历面试）不产生新代码。
+- 人工客服用 HTTP 增量轮询实现，后续可将同一接口替换为 WebSocket/SSE 以降低延迟；
+- 真实电商/物流系统、企业 SSO、短信网关属于外部集成，需要部署方提供凭据。

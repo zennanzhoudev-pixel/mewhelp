@@ -24,6 +24,7 @@ docker compose up -d        # MySQL + etcd + MinIO + Milvus
 make milvus-up              # 等 Milvus 健康
 make seed && make seed-conv
 make kb-build && make kb-vectorize
+make db-migrate             # 老库幂等升级账号/人工客服表
 make dev                    # 起 MCP + 应用
 ```
 
@@ -40,7 +41,8 @@ curl -s --max-time 90 http://localhost:8000/api/agent -H 'Content-Type: applicat
 ### MySQL
 
 - 镜像 `mysql:8`，root/root（仅本地演示）；
-- `sql/` 挂到 `/docker-entrypoint-initdb.d`，首启按文件名顺序执行 ch02–ch10 DDL；
+- `sql/` 挂到 `/docker-entrypoint-initdb.d`，首启按文件名顺序执行全部 DDL；
+- 已有数据卷不会重跑初始化脚本，升级后需手动执行 `sql/ch11-hardening.sql`（若尚未执行）和 `sql/ch12-console.sql`；
 - 表结构权威源是 `sql/`，ORM 只映射不 `create_all`。
 
 ### Milvus Standalone

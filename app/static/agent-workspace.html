@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<script src="/static/auth.js"></script>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>人工客服工作台 · MewHelp</title>
+  <style>
+    :root{--blue:#3370ff;--ink:#202636;--muted:#818a9b;--line:#e5e8ef;--bg:#f5f7fb}
+    *{box-sizing:border-box}html,body{height:100%;margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;background:var(--bg);color:var(--ink)}
+    .app{height:100vh;display:grid;grid-template-rows:62px 1fr}.top{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 185px 0 22px;gap:18px}.brand{display:flex;align-items:center;gap:9px;font-weight:750}.mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#3370ff,#75a1ff);display:grid;place-items:center;color:#fff;font-size:12px}.stats{display:flex;gap:17px;margin-left:18px;font-size:11px;color:#8b94a5}.stats b{color:#3370ff;font-size:15px;margin-right:4px}.links{margin-left:auto;display:flex;gap:14px}.links a{font-size:12px;color:#5d6779;text-decoration:none}.links a:hover{color:#3370ff}
+    .body{min-height:0;display:grid;grid-template-columns:330px 1fr}.queue{border-right:1px solid var(--line);background:#fff;display:flex;flex-direction:column;min-height:0}.queue-head{padding:17px;border-bottom:1px solid #eff1f5}.queue-head h1{font-size:17px;margin:0 0 4px}.queue-head p{font-size:11px;color:var(--muted);margin:0}.filters{display:flex;gap:6px;margin-top:12px}.filters button{border:0;border-radius:7px;background:#f2f4f8;color:#6c7587;padding:6px 10px;font-size:11px;cursor:pointer}.filters button.on{background:#e9efff;color:#245bdb}
+    .queue-list{overflow:auto;flex:1;padding:8px}.conv{display:block;width:100%;text-align:left;border:0;border-radius:10px;background:transparent;padding:12px;cursor:pointer;color:inherit;margin-bottom:3px}.conv:hover{background:#f7f9fd}.conv.on{background:#edf3ff}.conv-top{display:flex;align-items:center;gap:8px}.conv-avatar{width:31px;height:31px;border-radius:9px;background:#e7efff;color:#3370ff;display:grid;place-items:center;font-weight:700}.conv b{font-size:12px}.conv small{margin-left:auto;color:#9aa2b1;font-size:9px}.conv p{font-size:10.5px;color:#818a9a;margin:7px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tag{font-size:9px;padding:2px 5px;border-radius:8px;background:#fff1dd;color:#b16b00}.tag.mine{background:#e8f8ee;color:#238445}
+    .chat{min-width:0;min-height:0;display:flex;flex-direction:column;background:#f8fafc}.chat-empty{flex:1;display:grid;place-items:center;text-align:center;color:#929aaa}.chat-empty .big{font-size:42px;margin-bottom:10px}
+    .chat-head{height:67px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:11px}.chat-head b{display:block;font-size:14px}.chat-head small{display:block;color:#8c95a6;font-size:10px;margin-top:3px}.chat-ops{margin-left:auto;display:flex;gap:7px}.chat-ops button{border:1px solid #e0e4eb;background:#fff;border-radius:8px;padding:7px 10px;color:#566173;font-size:11px;cursor:pointer}.chat-ops .claim{background:#3370ff;color:#fff;border-color:#3370ff}
+    .messages{flex:1;overflow:auto;padding:22px 8%;display:flex;flex-direction:column;gap:13px}.msg{display:flex;gap:9px;align-items:flex-start}.msg.me{flex-direction:row-reverse}.bubble{max-width:70%;padding:10px 13px;border-radius:12px;background:#fff;border:1px solid #e7eaf0;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word}.msg.me .bubble{background:#3370ff;border-color:#3370ff;color:#fff}.msg.system{justify-content:center}.msg.system .bubble{background:#edf1f7;color:#7c8596;font-size:11px;border:0}.msg-avatar{width:29px;height:29px;border-radius:9px;background:#e8f0ff;color:#3370ff;display:grid;place-items:center;font-size:11px;font-weight:700}.msg.me .msg-avatar{background:#3370ff;color:#fff}
+    .composer{background:#fff;border-top:1px solid var(--line);padding:12px 16px 15px}.composer textarea{width:100%;height:72px;resize:none;border:1px solid #dfe3eb;border-radius:11px;padding:10px 12px;font:13px/1.6 inherit;outline:none}.composer textarea:focus{border-color:#8daeff;box-shadow:0 0 0 3px rgba(51,112,255,.08)}.composer-foot{display:flex;align-items:center;margin-top:8px;color:#9aa2b0;font-size:10px}.send{margin-left:auto;border:0;border-radius:8px;background:#3370ff;color:#fff;padding:8px 16px;font-size:12px;cursor:pointer}.send:disabled{background:#cbd5e8}
+    .loading{padding:28px;text-align:center;color:#9aa2b0;font-size:11px}.hidden{display:none!important}
+    @media(max-width:760px){.body{grid-template-columns:100%}.queue{position:absolute;inset:62px 0 0;z-index:4}.queue.mobile-hide{display:none}.top{padding-right:70px}.stats{display:none}.messages{padding:16px}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><span class="mark">喵</span>人工客服工作台</div>
+    <div class="stats"><span><b id="waiting">0</b>待接入</span><span><b id="mine">0</b>我的会话</span></div>
+    <div class="links"><a href="/console">管理控制台</a><a href="/" target="_blank">顾客端 ↗</a></div>
+  </header>
+  <div class="body">
+    <aside class="queue" id="queuePanel">
+      <div class="queue-head"><h1>会话队列</h1><p>按等待时间排序，先到先服务</p><div class="filters"><button class="on" data-filter="all">全部</button><button data-filter="waiting">待认领</button><button data-filter="mine">我的会话</button></div></div>
+      <div class="queue-list" id="queueList"><div class="loading">正在读取队列…</div></div>
+    </aside>
+    <main class="chat" id="chat">
+      <div class="chat-empty" id="empty"><div><div class="big">☏</div><b>选择一条会话开始服务</b><p style="font-size:11px;color:#9aa2b0">顾客转人工后会出现在左侧队列</p></div></div>
+      <div class="hidden" id="chatView">
+        <div class="chat-head"><div class="conv-avatar" id="chatAvatar">客</div><div><b id="chatName">顾客</b><small id="chatMeta">等待接入</small></div><div class="chat-ops"><button id="claimBtn" class="claim">认领会话</button><button id="releaseBtn">释放</button><button id="closeBtn">结束会话</button></div></div>
+        <div class="messages" id="messages"></div>
+        <div class="composer"><textarea id="reply" placeholder="输入回复内容…"></textarea><div class="composer-foot"><span>Enter 发送 · Shift+Enter 换行</span><button class="send" id="send">发送</button></div></div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+  const $=(id)=>document.getElementById(id);
+  let items=[],selected=null,timer=null,lastMessageId=0,filter="all",started=false;
+  const me=()=>window.MewHelpAuth.getIdentity()||{};
+  const esc=v=>String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+  async function api(path,options){const r=await fetch(path,options);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||("HTTP "+r.status));return d;}
+  async function loadQueue(){
+    try{
+      const d=await api("/api/support/workspace/queue");items=d.items;
+      $("waiting").textContent=d.waiting;$("mine").textContent=d.mine;
+      renderQueue();
+    }catch(e){$("queueList").innerHTML='<div class="loading">读取失败：'+esc(e.message)+'</div>';}
+  }
+  function shown(){
+    if(filter==="waiting")return items.filter(x=>!x.assigned_agent_id);
+    if(filter==="mine")return items.filter(x=>x.assigned_agent_id===me().user_id);
+    return items;
+  }
+  function renderQueue(){
+    const rows=shown();
+    if(!rows.length){$("queueList").innerHTML='<div class="loading">当前没有会话</div>';return;}
+    $("queueList").innerHTML=rows.map(x=>{
+      const mine=x.assigned_agent_id===me().user_id;
+      return `<button class="conv ${selected===x.conversation_id?"on":""}" data-id="${x.conversation_id}">
+        <div class="conv-top"><span class="conv-avatar">${esc((x.customer_name||"客").slice(0,1))}</span><b>${esc(x.customer_name||x.user_id)}</b><small>#${x.conversation_id}</small></div>
+        <p>${esc(x.last_message||x.preview)}</p>
+        <div style="margin-top:7px"><span class="tag ${mine?"mine":""}">${mine?"我处理中":x.assigned_agent_id?"其他客服":"待认领"}</span></div>
+      </button>`;}).join("");
+    $("queueList").querySelectorAll(".conv").forEach(b=>b.addEventListener("click",()=>select(Number(b.dataset.id))));
+  }
+  async function select(cid){
+    selected=cid;lastMessageId=0;renderQueue();
+    $("empty").classList.add("hidden");$("chatView").classList.remove("hidden");
+    $("messages").innerHTML='<div class="loading">读取消息…</div>';
+    const item=items.find(x=>x.conversation_id===cid)||{};
+    $("chatName").textContent=item.customer_name||item.user_id||("会话 #"+cid);
+    $("chatAvatar").textContent=(item.customer_name||"客").slice(0,1);
+    syncControls(item);
+    await loadMessages();
+  }
+  function syncControls(item){
+    const mine=item.assigned_agent_id===me().user_id;
+    $("claimBtn").classList.toggle("hidden",mine||!!item.assigned_agent_id);
+    $("releaseBtn").classList.toggle("hidden",!mine);
+    $("closeBtn").classList.toggle("hidden",!mine);
+    $("reply").disabled=!mine;$("send").disabled=!mine;
+    $("chatMeta").textContent=mine?"你正在处理":item.assigned_agent_id?"已由其他客服认领":"等待客服认领";
+  }
+  async function loadMessages(){
+    if(!selected)return;
+    try{
+      const d=await api("/api/support/"+selected+"/messages?after_id="+lastMessageId);
+      for(const m of d.items){
+        lastMessageId=Math.max(lastMessageId,m.id||0);
+        const type=m.sender_type;
+        const mine=type==="agent"&&m.sender_id===me().user_id;
+        const div=document.createElement("div");
+        div.className="msg "+(type==="system"?"system":mine?"me":"");
+        if(type==="system"){div.innerHTML='<div class="bubble">'+esc(m.content)+'</div>';}
+        else{div.innerHTML=`<span class="msg-avatar">${type==="user"?"客":mine?"我":"服"}</span><div class="bubble">${esc(m.content)}</div>`;}
+        $("messages").appendChild(div);
+      }
+      $("messages").scrollTop=$("messages").scrollHeight;
+    }catch(e){if(!$("messages").children.length)$("messages").innerHTML='<div class="loading">'+esc(e.message)+'</div>';}
+  }
+  async function action(path){
+    try{await api(path,{method:"POST"});await loadQueue();const item=items.find(x=>x.conversation_id===selected);if(item)syncControls(item);}
+    catch(e){alert(e.message);}
+  }
+  $("claimBtn").addEventListener("click",()=>action("/api/support/workspace/"+selected+"/claim"));
+  $("releaseBtn").addEventListener("click",async()=>{await action("/api/support/workspace/"+selected+"/release");});
+  $("closeBtn").addEventListener("click",async()=>{if(!confirm("确认结束本次人工服务？"))return;await action("/api/support/workspace/"+selected+"/close");});
+  async function send(){
+    const text=$("reply").value.trim();if(!text||!selected)return;
+    try{
+      await api("/api/support/workspace/"+selected+"/reply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content:text})});
+      $("reply").value="";await loadMessages();await loadQueue();
+    }catch(e){alert(e.message);}
+  }
+  $("send").addEventListener("click",send);$("reply").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}});
+  document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{filter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("on",x===b));renderQueue();}));
+  function start(){if(started)return;started=true;loadQueue();timer=setInterval(async()=>{await loadQueue();await loadMessages();},3000);}
+  window.addEventListener("mewhelp:auth-ready",start);if(window.MewHelpAuth.getIdentity())start();
+</script>
+</body>
+</html>

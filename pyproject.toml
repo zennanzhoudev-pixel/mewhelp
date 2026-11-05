@@ -1,6 +1,6 @@
 [project]
 name = "mewhelp"
-version = "0.1.0"
+version = "0.3.0"
 description = "MewHelp — 生产级电商 AI 智能客服(FastAPI + LangGraph + Milvus + MySQL)"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -33,6 +33,7 @@ dependencies = [
     "pydantic-settings>=2.14.2",
     "pymilvus[milvus-lite]>=3.0.0",
     "redis>=5.0",
+    "segno>=1.6",
     "sqlalchemy[asyncio]>=2.0.0",
     "uvicorn[standard]>=0.51.0",
 ]

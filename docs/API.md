@@ -6,7 +6,32 @@
 `Authorization: Bearer <token>`。知识库、RAG 评估、待审、观测、主题、验收、作业和
 `/api/admin/*` 还要求 JWT 角色包含 `admin`；`viewer` 返回 403。
 
-## 1. 聊天主入口（SSE）
+## 1. 登录与账号
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/auth/config` | 是否开启鉴权、短信模式和扫码开关 |
+| POST | `/api/auth/register` | 创建顾客账号；首个管理员种子按配置授予 `admin` |
+| POST | `/api/auth/login` | 用户名密码登录 |
+| POST | `/api/auth/sms/send` | 发送手机验证码；`console` 仅本地写日志，生产走 webhook |
+| POST | `/api/auth/sms/login` | 手机号 + 一次性验证码登录 |
+| POST | `/api/auth/qr/start` | 创建 2 分钟二维码登录票据 |
+| GET | `/api/auth/qr/{ticket}.svg` | 二维码 SVG，不依赖第三方图片服务 |
+| GET | `/api/auth/qr/{ticket}/status` | 桌面端轮询；手机确认后一次性返回 JWT |
+| POST | `/api/auth/qr/{ticket}/approve` | 手机端已登录用户确认登录 |
+| GET | `/api/auth/me` | 当前用户、角色、租户 |
+| POST | `/api/auth/change-password` | 修改本人密码 |
+
+管理员账号管理：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/admin/users` | 当前租户成员列表 |
+| POST | `/api/admin/users` | 创建 `customer/agent/admin/viewer` 成员 |
+| PATCH | `/api/admin/users/{id}` | 修改角色、状态、显示名、手机号 |
+| POST | `/api/admin/users/{id}/reset-password` | 管理员重置密码 |
+
+## 2. 聊天主入口（SSE）
 
 ### `POST /api/chat`
 
@@ -31,7 +56,7 @@
 | error | `event: error` + `{"message":"..."}` | 错误（流已 200，只能走帧） |
 | 终止 | `data: [DONE]` | 流终止哨兵 |
 
-## 2. 非流式 Agent
+## 3. 非流式 Agent
 
 ### `POST /api/agent`
 
@@ -57,7 +82,7 @@
 - `interrupt` 非空时表示流程停在缺槽位/待确认：`select_order`（带订单列表）或 `confirm_ticket`（带工单预览）。
 - 错误：404 会话不存在、422 参数校验、502 上游、503 数据库。
 
-## 3. 结构化提取
+## 4. 结构化提取
 
 ### `POST /api/extract`
 
@@ -71,7 +96,7 @@
 
 `request_type` ∈ 退款 / 换货 / 维修 / 投诉 / 其他；订单号缺失为 `null`。
 
-## 4. 动作（按钮触发）
+## 5. 动作（按钮触发）
 
 ### `POST /api/actions/create-ticket`
 
@@ -103,7 +128,7 @@
 {"conversation_id":5,"confirmed":true}
 ```
 
-## 5. 会话与反馈
+## 6. 会话、反馈与人工客服
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
@@ -111,7 +136,20 @@
 | GET | `/api/conversations/{id}/messages` | 回载历史原文 |
 | POST | `/api/feedback` | `{conversation_id,rating:"up"/"down",question}`；👎 入问题池 |
 
-## 6. 知识库（`/api/kb`）
+人工客服：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/api/support/request` | 顾客把会话转入人工队列 |
+| GET | `/api/support/{id}/status` | 排队/处理中/已结束及客服姓名 |
+| GET | `/api/support/{id}/messages` | 顾客轮询真人回复，`after_id` 增量取 |
+| GET | `/api/support/workspace/queue` | 客服工作台队列 |
+| POST | `/api/support/workspace/{id}/claim` | 认领会话 |
+| POST | `/api/support/workspace/{id}/reply` | 人工回复 |
+| POST | `/api/support/workspace/{id}/release` | 释放回队列 |
+| POST | `/api/support/workspace/{id}/close` | 结束人工服务 |
+
+## 7. 知识库（`/api/kb`）
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
@@ -124,7 +162,7 @@
 | POST | `/api/kb/staging/approve` | 暂存通过 |
 | POST | `/api/kb/staging/reject` | 暂存驳回 |
 
-## 7. 飞轮待审（`/api/review`）
+## 8. 飞轮待审（`/api/review`）
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
@@ -133,7 +171,7 @@
 | POST | `/api/review/{id}/approve` | 通过并写回知识库（`{"approved_answer":"..."}`） |
 | POST | `/api/review/{id}/reject` | 驳回 |
 
-## 8. 主题与评估
+## 9. 主题与评估
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
@@ -143,7 +181,7 @@
 | GET | `/api/rag-eval/faith-cases` | 编造个案台账（分页/状态） |
 | POST | `/api/rag-eval/faith-cases/{id}/status` | 处置状态（需说明） |
 
-## 9. 观测 / 后台 / 作业 / 验收
+## 10. 观测 / 后台 / 作业 / 验收
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
@@ -160,7 +198,7 @@
 | GET | `/api/acceptance/service` | 分类器服务状态 |
 | POST | `/api/acceptance/classify` | 单条归类 |
 
-## 10. 核心函数索引
+## 11. 核心函数索引
 
 ### 编排（`app/graph/`）
 

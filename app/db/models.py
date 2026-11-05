@@ -17,6 +17,8 @@ class Conversation(Base):
     status: Mapped[str] = mapped_column(
         Enum("进行中", "已转人工", "已结束"), server_default="进行中"
     )
+    assigned_agent_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    transfer_reason: Mapped[str | None] = mapped_column(String(300), nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)               # ch07 早期轮次滚动摘要
     summary_upto_msg_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)  # 摘要覆盖到的消息 id
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -36,6 +38,8 @@ class Message(Base):
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
     tool_calls: Mapped[list | None] = mapped_column(JSON, nullable=True)
     tool_call_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    sender_type: Mapped[str] = mapped_column(String(16), server_default="ai")
+    sender_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
@@ -215,9 +219,44 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(64), unique=True)
     password_hash: Mapped[str] = mapped_column(String(256))
     role: Mapped[str] = mapped_column(
-        Enum("admin", "agent", "viewer"), default="viewer", server_default="viewer"
+        Enum("admin", "agent", "viewer", "customer"),
+        default="customer", server_default="customer",
     )
     tenant_id: Mapped[str] = mapped_column(String(64), default="default", server_default="default")
+    phone: Mapped[str | None] = mapped_column(String(32), unique=True, nullable=True)
+    display_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(
+        Enum("active", "disabled"), default="active", server_default="active"
+    )
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.now, server_default=func.now()
     )
+
+
+class LoginCode(Base):
+    """手机号验证码。只存 HMAC,不存明文;一次性、限时、限尝试次数。"""
+    __tablename__ = "login_codes"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    phone: Mapped[str] = mapped_column(String(32), index=True)
+    code_hash: Mapped[str] = mapped_column(String(128))
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    attempts: Mapped[int] = mapped_column(Integer, server_default="0")
+    used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class QrLoginSession(Base):
+    """桌面二维码登录票据。二维码本身不是凭证,手机端确认后才兑换一次性 JWT。"""
+    __tablename__ = "qr_login_sessions"
+
+    ticket: Mapped[str] = mapped_column(String(64), primary_key=True)
+    status: Mapped[str] = mapped_column(
+        Enum("pending", "approved", "consumed", "expired"), server_default="pending"
+    )
+    user_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

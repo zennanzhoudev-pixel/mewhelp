@@ -77,6 +77,14 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 720
     admin_user: str = "admin"             # 首个管理员(注册时若用户名匹配则授予 admin 角色)
     admin_password: str = ""              # 首个管理员密码;空则禁用该种子
+    public_base_url: str = ""             # 二维码里使用的公网地址,如 https://help.example.com
+    # 手机验证码:console 仅写日志供本地联调;webhook 可对接企业短信网关。
+    sms_provider: str = "console"         # console / webhook
+    sms_webhook_url: str = ""
+    sms_webhook_token: str = ""
+    sms_code_ttl_seconds: int = 300
+    sms_resend_seconds: int = 60
+    sms_debug_return_code: bool = False   # 仅本地开发可开;生产必须 false
     # 限流(内存滑动窗口;多副本请改 Redis 实现)
     rate_limit_enabled: bool = False
     rate_limit_per_minute: int = 120

@@ -43,7 +43,12 @@ curl -X POST http://localhost:8000/api/auth/register \
 
 返回里 `role` 应为 `admin`,`token` 就是你的登录凭证。
 
-### 1.4 带 token 调用
+### 1.4 打开登录页
+
+浏览器访问 `http://localhost:8000/login`。支持扫码确认、手机号验证码和账号密码。
+管理员登录后进入 `/console`；人工客服进入 `/agent`；顾客进入 `/`。
+
+### 1.5 带 token 调用
 
 ```bash
 TOKEN=<上一步返回的 token>
@@ -53,7 +58,8 @@ curl -X POST http://localhost:8000/api/chat \
   -d '{"user_id":"u1","message":"订单 1001 的物流到哪了"}'
 ```
 
-> ⚠️ 重要:当前 `app/static/index.html` 前端还没有在请求里带 `Authorization` 头。开启 `AUTH_ENABLED=true` 后,浏览器聊天页会被 401 挡住。两条路:①先只开后端、用 curl/接口调试;②让我帮你在前端接登录(token 存 localStorage、请求带上)。建议先用 ① 验证后端,再让我接 ②。
+前端已统一处理登录跳转、Bearer token、角色菜单与账号状态。若使用手机扫码，`PUBLIC_BASE_URL`
+必须是手机可访问的局域网地址或公网 HTTPS 域名。
 
 ## 2. TLS 证书 + 域名 + 反向代理
 

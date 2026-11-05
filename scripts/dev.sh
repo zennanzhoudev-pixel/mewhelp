@@ -43,4 +43,4 @@ echo "Milvus OK"
 
 make mcp-up   # ch08: 物流/售后 MCP Server(独立进程 :8101/:8102)
 
-uv run --no-sync uvicorn app.main:app --port 8000
+uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port 8000

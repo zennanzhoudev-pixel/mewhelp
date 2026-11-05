@@ -135,6 +135,12 @@ async def test_chat_unknown_conversation_emits_error_frame(monkeypatch):
         yield  # pragma: no cover - 让函数保持生成器形态
 
     monkeypatch.setattr(runtime, "stream_turn", fake_stream)
+    from app.api import chat as chat_api
+
+    async def missing(cid, tenant_id):
+        return None
+
+    monkeypatch.setattr(chat_api.repository, "get_conversation", missing)
 
     async with _client() as client:
         async with client.stream(

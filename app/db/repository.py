@@ -11,9 +11,11 @@ from app.db.models import (
     EvalRun,
     FaithCase,
     KnowledgeChunk,
+    LoginCode,
     LowConfidenceQuestion,
     Message,
     QaExtractionStaging,
+    QrLoginSession,
     ReviewQueue,
     Ticket,
     ToolAuditLog,
@@ -52,6 +54,8 @@ async def append_message(
     content: str | None = None,
     tool_calls: list | None = None,
     tool_call_id: str | None = None,
+    sender_type: str = "ai",
+    sender_id: int | None = None,
 ) -> int:
     async with db.async_session() as s:
         msg = Message(
@@ -60,6 +64,8 @@ async def append_message(
             content=content,
             tool_calls=tool_calls,
             tool_call_id=tool_call_id,
+            sender_type=sender_type,
+            sender_id=sender_id,
         )
         s.add(msg)
         await s.commit()
@@ -554,8 +560,21 @@ async def insert_tool_audit(
 
 
 async def create_user(username: str, password_hash: str, role: str, tenant_id: str) -> int:
+    return await create_managed_user(
+        username=username, password_hash=password_hash, role=role,
+        tenant_id=tenant_id, phone=None, display_name=None,
+    )
+
+
+async def create_managed_user(
+    username: str, password_hash: str, role: str, tenant_id: str,
+    phone: str | None, display_name: str | None,
+) -> int:
     async with db.async_session() as s:
-        u = User(username=username, password_hash=password_hash, role=role, tenant_id=tenant_id)
+        u = User(
+            username=username, password_hash=password_hash, role=role,
+            tenant_id=tenant_id, phone=phone, display_name=display_name,
+        )
         s.add(u)
         await s.commit()
         return u.id
@@ -573,6 +592,59 @@ async def get_user_by_id(user_id: int) -> User | None:
         return await s.get(User, user_id)
 
 
+async def get_user_by_phone(phone: str) -> User | None:
+    async with db.async_session() as s:
+        return (
+            await s.execute(select(User).where(User.phone == phone))
+        ).scalar_one_or_none()
+
+
+async def list_users(tenant_id: str, query: str = "", limit: int = 200) -> list[User]:
+    async with db.async_session() as s:
+        q = select(User).where(User.tenant_id == tenant_id)
+        if query:
+            like = f"%{query}%"
+            q = q.where(
+                User.username.like(like)
+                | User.display_name.like(like)
+                | User.phone.like(like)
+            )
+        return list((await s.execute(
+            q.order_by(User.created_at.desc(), User.id.desc()).limit(limit)
+        )).scalars())
+
+
+async def update_managed_user(
+    user_id: int, tenant_id: str, *,
+    display_name: str | None = None,
+    phone: str | None = None,
+    role: str | None = None,
+    status: str | None = None,
+) -> User | None:
+    async with db.async_session() as s:
+        u = await s.get(User, user_id)
+        if u is None or u.tenant_id != tenant_id:
+            return None
+        if display_name is not None:
+            u.display_name = display_name or None
+        if phone is not None:
+            u.phone = phone or None
+        if role is not None:
+            u.role = role
+        if status is not None:
+            u.status = status
+        await s.commit()
+        return u
+
+
+async def touch_user_login(user_id: int) -> None:
+    async with db.async_session() as s:
+        u = await s.get(User, user_id)
+        if u is not None:
+            u.last_login_at = datetime.now()
+            await s.commit()
+
+
 async def update_user_password(user_id: int, password_hash: str) -> bool:
     async with db.async_session() as s:
         u = await s.get(User, user_id)
@@ -581,6 +653,267 @@ async def update_user_password(user_id: int, password_hash: str) -> bool:
         u.password_hash = password_hash
         await s.commit()
         return True
+
+
+# ---------- ch12 手机验证码 / 二维码登录 ----------
+
+
+async def create_login_code(phone: str, code_hash: str, expires_at: datetime) -> int:
+    async with db.async_session() as s:
+        now = datetime.now()
+        for row in (await s.execute(
+            select(LoginCode).where(
+                LoginCode.phone == phone,
+                LoginCode.used_at.is_(None),
+                LoginCode.expires_at > now,
+            )
+        )).scalars():
+            row.used_at = now
+        code = LoginCode(phone=phone, code_hash=code_hash, expires_at=expires_at)
+        s.add(code)
+        await s.commit()
+        return code.id
+
+
+async def latest_login_code(phone: str) -> LoginCode | None:
+    async with db.async_session() as s:
+        return (
+            await s.execute(
+                select(LoginCode)
+                .where(LoginCode.phone == phone)
+                .order_by(LoginCode.id.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+
+
+async def update_login_code(code: LoginCode, *, attempts: int | None = None,
+                            used_at: datetime | None = None) -> None:
+    async with db.async_session() as s:
+        row = await s.get(LoginCode, code.id)
+        if row is None:
+            return
+        if attempts is not None:
+            row.attempts = attempts
+        if used_at is not None:
+            row.used_at = used_at
+        await s.commit()
+
+
+async def create_qr_session(ticket: str, expires_at: datetime) -> None:
+    async with db.async_session() as s:
+        s.add(QrLoginSession(ticket=ticket, expires_at=expires_at))
+        await s.commit()
+
+
+async def get_qr_session(ticket: str) -> QrLoginSession | None:
+    async with db.async_session() as s:
+        return await s.get(QrLoginSession, ticket)
+
+
+async def approve_qr_session(ticket: str, user_id: int) -> QrLoginSession | None:
+    async with db.async_session() as s:
+        row = await s.get(QrLoginSession, ticket, with_for_update=True)
+        if row is None or row.status != "pending" or row.expires_at <= datetime.now():
+            return None
+        row.status = "approved"
+        row.user_id = user_id
+        row.approved_at = datetime.now()
+        await s.commit()
+        return row
+
+
+async def consume_qr_session(ticket: str) -> tuple[QrLoginSession | None, bool]:
+    async with db.async_session() as s:
+        row = await s.get(QrLoginSession, ticket, with_for_update=True)
+        if row is None:
+            return None, False
+        if row.status == "pending" and row.expires_at <= datetime.now():
+            row.status = "expired"
+            await s.commit()
+            return row, False
+        if row.status != "approved":
+            return row, False
+        row.status = "consumed"
+        row.consumed_at = datetime.now()
+        await s.commit()
+        return row, True
+
+
+# ---------- ch12 人工客服工作台 ----------
+
+
+async def request_human_support(conversation_id: int, tenant_id: str, reason: str) -> dict | None:
+    async with db.async_session() as s:
+        conv = await s.get(Conversation, conversation_id, with_for_update=True)
+        if conv is None or (conv.tenant_id or "default") != tenant_id:
+            return None
+        if conv.status != "已结束":
+            conv.status = "已转人工"
+            conv.transfer_reason = reason[:300]
+            conv.updated_at = datetime.now()
+            s.add(Message(
+                conversation_id=conversation_id, role="assistant",
+                content="已为您接入人工客服，正在排队，请稍候。",
+                sender_type="system",
+            ))
+        await s.commit()
+        return {
+            "conversation_id": conv.id, "status": conv.status,
+            "assigned_agent_id": conv.assigned_agent_id,
+        }
+
+
+async def list_support_queue(tenant_id: str, assigned_agent_id: int | None = None) -> list[dict]:
+    async with db.async_session() as s:
+        q = select(Conversation).where(
+            Conversation.tenant_id == tenant_id,
+            Conversation.status == "已转人工",
+        )
+        if assigned_agent_id is not None:
+            q = q.where(
+                (Conversation.assigned_agent_id == assigned_agent_id)
+                | Conversation.assigned_agent_id.is_(None)
+            )
+        convs = list((await s.execute(
+            q.order_by(Conversation.updated_at.asc()).limit(200)
+        )).scalars())
+        out = []
+        for conv in convs:
+            customer = None
+            try:
+                customer = await s.get(User, int(conv.user_id))
+            except (TypeError, ValueError):
+                pass
+            first = (await s.execute(
+                select(Message.content)
+                .where(Message.conversation_id == conv.id, Message.role == "user")
+                .order_by(Message.id).limit(1)
+            )).scalar()
+            last = (await s.execute(
+                select(Message)
+                .where(Message.conversation_id == conv.id)
+                .order_by(Message.id.desc()).limit(1)
+            )).scalar_one_or_none()
+            out.append({
+                "conversation_id": conv.id,
+                "user_id": conv.user_id,
+                "customer_name": (
+                    (customer.display_name or customer.username)
+                    if customer is not None else conv.user_id
+                ),
+                "status": conv.status,
+                "assigned_agent_id": conv.assigned_agent_id,
+                "reason": conv.transfer_reason,
+                "preview": (first or "(无消息)")[:120],
+                "last_message": (last.content or "")[:120] if last else "",
+                "updated_at": conv.updated_at.isoformat() if conv.updated_at else None,
+            })
+        return out
+
+
+async def claim_support(conversation_id: int, tenant_id: str, agent_id: int) -> dict | None:
+    async with db.async_session() as s:
+        conv = await s.get(Conversation, conversation_id, with_for_update=True)
+        if (
+            conv is None
+            or (conv.tenant_id or "default") != tenant_id
+            or conv.status != "已转人工"
+            or conv.assigned_agent_id not in (None, agent_id)
+        ):
+            return None
+        conv.assigned_agent_id = agent_id
+        conv.updated_at = datetime.now()
+        await s.commit()
+        return {"conversation_id": conv.id, "assigned_agent_id": agent_id}
+
+
+async def reply_support(
+    conversation_id: int, tenant_id: str, agent_id: int, content: str,
+) -> dict | None:
+    async with db.async_session() as s:
+        conv = await s.get(Conversation, conversation_id, with_for_update=True)
+        if (
+            conv is None
+            or (conv.tenant_id or "default") != tenant_id
+            or conv.status != "已转人工"
+            or conv.assigned_agent_id != agent_id
+        ):
+            return None
+        msg = Message(
+            conversation_id=conversation_id, role="assistant", content=content,
+            sender_type="agent", sender_id=agent_id,
+        )
+        s.add(msg)
+        conv.updated_at = datetime.now()
+        await s.flush()
+        await s.refresh(msg)
+        await s.commit()
+        return {
+            "id": msg.id,
+            "created_at": msg.created_at.isoformat() if msg.created_at else None,
+        }
+
+
+async def release_support(conversation_id: int, tenant_id: str, agent_id: int) -> bool:
+    async with db.async_session() as s:
+        conv = await s.get(Conversation, conversation_id, with_for_update=True)
+        if (
+            conv is None
+            or (conv.tenant_id or "default") != tenant_id
+            or conv.assigned_agent_id != agent_id
+        ):
+            return False
+        conv.assigned_agent_id = None
+        conv.updated_at = datetime.now()
+        await s.commit()
+        return True
+
+
+async def close_support(conversation_id: int, tenant_id: str, agent_id: int) -> bool:
+    async with db.async_session() as s:
+        conv = await s.get(Conversation, conversation_id, with_for_update=True)
+        if (
+            conv is None
+            or (conv.tenant_id or "default") != tenant_id
+            or conv.assigned_agent_id != agent_id
+        ):
+            return False
+        conv.status = "已结束"
+        conv.updated_at = datetime.now()
+        s.add(Message(
+            conversation_id=conversation_id, role="assistant",
+            content="本次人工服务已结束。如仍有问题，可以继续向智能客服提问。",
+            sender_type="system",
+        ))
+        await s.commit()
+        return True
+
+
+async def list_support_messages(
+    conversation_id: int, tenant_id: str, after_id: int = 0,
+) -> list[dict] | None:
+    async with db.async_session() as s:
+        conv = await s.get(Conversation, conversation_id)
+        if conv is None or (conv.tenant_id or "default") != tenant_id:
+            return None
+        rows = list((await s.execute(
+            select(Message)
+            .where(
+                Message.conversation_id == conversation_id,
+                Message.id > after_id,
+            )
+            .order_by(Message.id)
+        )).scalars())
+        return [
+            {
+                "id": m.id, "role": m.role, "content": m.content or "",
+                "sender_type": m.sender_type or "ai",
+                "sender_id": m.sender_id,
+                "created_at": m.created_at.isoformat() if m.created_at else None,
+            }
+            for m in rows
+        ]
 
 
 # ---------- ch10 主题分类 ----------
