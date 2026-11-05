@@ -78,16 +78,15 @@ make mcp-down
 
 ## 5. 生产化建议
 
-当前仓库是**单机演示版**。上生产前至少补：
+仓库同时提供本地单机开发和多副本生产编排。上公网前至少完成：
 
-1. **鉴权与租户**：登录、租户隔离、RBAC；目前仅按 `user_id` 归属。
-2. **反向代理与 TLS**：Nginx/Caddy，SSE 需关闭缓冲（`proxy_buffering off`）。
-3. **密钥管理**：Vault/KMS/云 Secret，禁止明文 `.env` 上车。
-4. **数据库**：MySQL 主从/备份、连接池、慢查询；Milvus 集群化。
-5. **限流与熔断**：按用户/租户/IP；上游 429/5xx 退避。
-6. **多副本**：checkpointer 换 Postgres/Redis 等共享存储（当前 AsyncSqliteSaver 单机）。
-7. **观测告警**：Langfuse + Prometheus/Alertmanager；成本与错误率阈值。
-8. **数据保留**：会话/审计/问题池的保留期与删除任务。
+1. **账号与密钥**：替换临时管理员密码；用 `openssl rand -hex 32` 生成 `JWT_SECRET`，由 Vault/KMS/云 Secret 注入，禁止把 `.env` 打进镜像。
+2. **反向代理与 TLS**：使用 `deploy/nginx.prod.conf`，证书放 `deploy/certs/`；SSE 保持 `proxy_buffering off`。
+3. **共享状态**：配置 Postgres checkpointer、Redis 限流和真实多实例编排；按 `deploy/prod.env.example` 填值。
+4. **数据库**：MySQL 主从/备份、连接池、慢查询；Milvus 集群化，并验证恢复演练。
+5. **观测告警**：Langfuse + Prometheus/Alertmanager，确认错误率、延迟、队列积压与成本阈值告警可达。
+6. **数据保留**：按企业合规口径设置 `RETENTION_DAYS_*`，验证 cron/调度器确实执行并留下审计记录。
+7. **上线验收**：检查管理员/普通用户权限、跨租户 404、TLS、密钥轮换、备份恢复和回滚预案。
 
 ## 6. 常见问题
 

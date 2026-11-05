@@ -2,6 +2,10 @@
 
 基础地址：`http://localhost:8000`。除 SSE 外均为 JSON。
 
+`AUTH_ENABLED=true` 时，除 `/api/auth/*` 外所有 API 都要带
+`Authorization: Bearer <token>`。知识库、RAG 评估、待审、观测、主题、验收、作业和
+`/api/admin/*` 还要求 JWT 角色包含 `admin`；`viewer` 返回 403。
+
 ## 1. 聊天主入口（SSE）
 
 ### `POST /api/chat`

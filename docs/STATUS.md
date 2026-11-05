@@ -7,8 +7,10 @@
 | 项目 | 证据 |
 | --- | --- |
 | 纯逻辑单测（chunking/去重/路由/停止条件/工具引擎/上下文/飞轮/taxonomy 等） | 本地可跑，无外部服务 |
-| 全量测试（含 MySQL / Milvus / MCP 集成） | GitHub Actions：**443 passed** |
-| Web 应用启动与页面 | `uvicorn app.main:app` 可起，`/` `/kb` `/admin` `/rag-eval` `/review` `/observability` `/topics` 均 200 |
+| 全量测试（含 MySQL / Milvus / MCP 集成） | 本地：**454 passed**；GitHub Actions 随每次 push 复跑 |
+| Web 应用启动与页面 | `uvicorn app.main:app` 可起；10 个聊天/后台页面均返回 200 |
+| 后台权限 | `admin` 可访问全部管理 API；`viewer` 返回 403；无 token 返回 401 |
+| 租户隔离 | 会话历史、续跑、工单、退款、反馈均带租户校验；跨租户返回 404 |
 | 知识库切块（真实 6 份文档） | 52 块（faq 15 / policy 15 / manual 8 / spec 14），表格复制表头、关键条款识别 |
 | CI 基础设施 | MySQL 8 + Milvus Standalone + MCP Server 自动起 |
 
@@ -35,14 +37,14 @@
 - ch08 工具注册/执行引擎、MCP、审计、工单确认流
 - ch09 Langfuse、置信度校准、三入口问题池、待审、评估趋势
 - ch10 17 类多标签分类器、语料/训练/评测/ONNX/旁路归类
+- ch11 生产加固：JWT/PBKDF2、RBAC、Redis 限流、熔断、Postgres checkpointer、
+  语义历史、Skill、保留期、PII 脱敏、审计哈希链、TLS/监控/备份部署产物
 
 ## 4. 明确未实现
 
 | 项 | 说明 |
 | --- | --- |
-| 登录 / 鉴权 / 多租户 | 仅 `user_id` 归属，无登录体系 |
-| 限流 / 熔断 / 多副本 | 单机演示 |
-| 自动保留期 / 删除任务 | 需接入方实现 |
-| PII 统一脱敏 | 仅 ch10 语料清洗有脱敏步骤 |
-| 意图小模型降级 | 仅配置种子，运行时统一大模型 |
-| ch11 / ch12 | 复盘与面试，不产生代码 |
+| 用户长期画像 | 已有语义历史；画像字段与写回策略需业务定义 |
+| 完整 Skill 协议 | 当前为按意图注入 `skills/*.md` 的轻量 Skill |
+| 真实生产基础设施 | 公网域名、TLS 证书、Vault/KMS、MySQL/Milvus 集群与监控实例需部署方提供 |
+| 合规口径 | 保留天数、隐私告知、DPA、等保材料需按企业/地区要求确认 |

@@ -2,7 +2,7 @@ import json
 import logging
 from collections.abc import AsyncIterator
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -24,10 +24,20 @@ def _sse(payload: dict) -> str:
     return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 
+def _tenant(request: Request) -> str:
+    return getattr(request.state, "tenant_id", None) or "default"
+
+
+async def _require_conversation(conversation_id: int, tenant_id: str) -> None:
+    if await repository.get_conversation(conversation_id, tenant_id) is None:
+        raise HTTPException(status_code=404, detail="会话不存在")
+
+
 @router.post("/api/actions/create-ticket", response_model=CreateTicketResponse)
-async def create_ticket_action(req: CreateTicketRequest) -> CreateTicketResponse:
+async def create_ticket_action(req: CreateTicketRequest, request: Request) -> CreateTicketResponse:
     """建工单按钮:用户点了才写 tickets 表(复用 ch02 工单能力)。转人工是另一件事,纯前端。"""
     try:
+        await _require_conversation(req.conversation_id, _tenant(request))
         ticket_no = await repository.create_ticket(
             req.conversation_id, req.description, req.ticket_type)
     except SQLAlchemyError:
@@ -37,10 +47,11 @@ async def create_ticket_action(req: CreateTicketRequest) -> CreateTicketResponse
 
 
 @router.post("/api/actions/create-refund", response_model=CreateRefundResponse)
-async def create_refund_action(req: CreateRefundRequest) -> CreateRefundResponse:
+async def create_refund_action(req: CreateRefundRequest, request: Request) -> CreateRefundResponse:
     """退款表单提交:写 tickets(ticket_type='退款'),描述带订单号 + 固定类目原因。复用 ch02 工单能力。"""
     desc = f"退款申请 订单号={req.order_id} 原因={req.reason}"
     try:
+        await _require_conversation(req.conversation_id, _tenant(request))
         ticket_no = await repository.create_ticket(req.conversation_id, desc, "退款")
     except SQLAlchemyError:
         logger.exception("退款单创建失败 conv=%s", req.conversation_id)
@@ -49,16 +60,19 @@ async def create_refund_action(req: CreateRefundRequest) -> CreateRefundResponse
 
 
 @router.post("/api/actions/resume")
-async def resume_action(req: ResumeRequest):
+async def resume_action(req: ResumeRequest, request: Request):
     """中断续跑(SSE,事件与 /api/chat 同构):订单选择器点选回 order_id;
     工单预览卡回 confirmed(ch08,resume 值为 {"confirmed": bool},agent_tools 按此放行/拒绝)。"""
     if req.order_id is None and req.confirmed is None:
         raise HTTPException(status_code=400, detail="order_id 与 confirmed 至少传一个")
     resume_value = req.order_id if req.order_id is not None else {"confirmed": bool(req.confirmed)}
+    tenant_id = _tenant(request)
 
     async def event_stream() -> AsyncIterator[str]:
         try:
-            async for ev in runtime.stream_resume(req.conversation_id, resume_value):
+            async for ev in runtime.stream_resume(
+                req.conversation_id, resume_value, tenant_id=tenant_id
+            ):
                 if ev["type"] == "tool":
                     yield _sse({"event": "tool", "name": ev["name"]})
                 elif ev["type"] == "delta":

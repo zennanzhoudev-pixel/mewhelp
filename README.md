@@ -252,10 +252,10 @@ make ch10-golden / ch10-eval
 ## 13. Roadmap
 
 - [x] ch01–ch10 全链路（对话/工具/RAG/混合检索/Workflow+Agent/意图/上下文/MCP/飞轮/微调）
-- [ ] 鉴权与多租户（登录、租户隔离、RBAC）
-- [ ] 限流、熔断、多副本与生产级可观测告警
-- [ ] 语义检索历史 + 用户长期记忆
-- [ ] Skill 机制与更多外部系统连接器
+- [x] 鉴权、租户隔离与 RBAC（管理员后台、普通用户界面守卫、会话级租户校验）
+- [x] 内存/Redis 限流、熔断、Postgres checkpointer 多副本部署产物与 Prometheus 告警
+- [x] 语义检索历史；用户长期画像仍留给业务定义
+- [x] Skill 指令包机制；更多外部系统连接器按业务扩展
 
 ## 14. License
 

@@ -6,12 +6,13 @@
 
 每张卡的数都从各模块自己的读数函数来,这里只做汇总,不另算一份。
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.api import acceptance, kb, observability, rageval
+from app.core.deps import require_admin
 from app.db import repository
 
-router = APIRouter(prefix="/api/admin")
+router = APIRouter(prefix="/api/admin", dependencies=[Depends(require_admin)])
 
 REVIEW_STATES = ("待审", "通过", "驳回")
 RAG_LABEL = {"vector": "纯向量", "bm25": "纯 BM25", "hybrid": "混合",

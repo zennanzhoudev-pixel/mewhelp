@@ -1,12 +1,32 @@
 /* 共用登录/鉴权:自动给 /api/* 请求加 Bearer token,无 token 时弹登录框。
-   引入方式:在所有页面 </body> 前加 <script src="/static/auth.js"></script>。 */
+   必须在 <head> 中加载,保证页面脚本发第一批 API 请求前已经包装好 fetch。 */
 (function () {
   const TOKEN_KEY = "mewhelp_token";
+  const ADMIN_PREFIXES = ["/admin", "/kb", "/rag-eval", "/review",
+    "/observability", "/topics", "/acceptance"];
   const rawFetch = window.fetch.bind(window);
+  let identity = null;
 
   function getToken() { return localStorage.getItem(TOKEN_KEY) || ""; }
   function setToken(t) { localStorage.setItem(TOKEN_KEY, t || ""); }
   function clearToken() { localStorage.removeItem(TOKEN_KEY); }
+  function isAdmin() { return !!identity && (identity.roles || []).includes("admin"); }
+
+  function applyIdentity(me, authEnabled) {
+    identity = me || null;
+    const admin = !authEnabled || isAdmin();
+    document.querySelectorAll("[data-admin-only]").forEach((el) => {
+      el.hidden = !admin;
+    });
+    document.documentElement.dataset.mewhelpRole =
+      authEnabled ? ((identity && identity.roles && identity.roles[0]) || "anonymous") : "admin";
+
+    // 页面外壳也做一层体验守卫;真正的权限校验始终在后端 API。
+    const adminPage = ADMIN_PREFIXES.some(
+      (p) => location.pathname === p || location.pathname.startsWith(p + "/")
+    );
+    if (authEnabled && adminPage && !isAdmin()) location.replace("/");
+  }
 
   // 给 /api/*(除 /api/auth/*)加上 Authorization
   window.fetch = async function (input, init) {
@@ -85,18 +105,26 @@
     try {
       const r = await rawFetch("/api/auth/config");
       const d = await r.json();
-      if (!d.auth_enabled) return;          // 未开鉴权:不弹框
+      if (!d.auth_enabled) {                // 未开鉴权:不弹框,本地按管理员展示
+        applyIdentity(null, false);
+        return;
+      }
       if (!getToken()) { showLogin(); return; }
       const me = await rawFetch("/api/auth/me", {
         headers: { Authorization: "Bearer " + getToken() },
       });
-      if (!me.ok) { clearToken(); showLogin(); }
+      if (!me.ok) { clearToken(); showLogin(); return; }
+      applyIdentity(await me.json(), true);
     } catch (e) {
       /* 服务未起时不打扰 */
     }
   }
 
-  window.MewHelpAuth = { getToken, setToken, clearToken, showLogin };
+  window.MewHelpAuth = {
+    getToken, setToken, clearToken, showLogin,
+    getIdentity: () => identity,
+    isAdmin,
+  };
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
   } else {

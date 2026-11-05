@@ -60,7 +60,7 @@ async def test_trace_does_not_leak_across_turns():
 
 @pytest.mark.asyncio
 async def test_run_turn_creates_conversation_when_none(monkeypatch, no_summary_task):
-    async def fake_create(uid): return 42
+    async def fake_create(uid, tenant_id="default"): return 42
     async def fake_append(cid, role, content=None, **k): return 1
 
     class FakeGraph:
@@ -77,7 +77,7 @@ async def test_run_turn_creates_conversation_when_none(monkeypatch, no_summary_t
 
 @pytest.mark.asyncio
 async def test_run_turn_raises_when_conversation_missing(monkeypatch):
-    async def fake_get(cid): return None
+    async def fake_get(cid, tenant_id="default"): return None
     monkeypatch.setattr(runtime.repository, "get_conversation", fake_get)
     with pytest.raises(runtime.ConversationNotFound):
         await runtime.run_turn("u1", "hi", 999)
@@ -85,7 +85,7 @@ async def test_run_turn_raises_when_conversation_missing(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_stream_turn_maps_events(monkeypatch, no_summary_task):
-    async def fake_create(uid): return 7
+    async def fake_create(uid, tenant_id="default"): return 7
     async def fake_append(cid, role, content=None, **k): return 1
     monkeypatch.setattr(runtime.repository, "create_conversation", fake_create)
     monkeypatch.setattr(runtime.repository, "append_message", fake_append)
@@ -134,7 +134,7 @@ def test_dedup_actions_keeps_first_occurrence_per_type():
 
 @pytest.mark.asyncio
 async def test_stream_turn_dedups_actions_before_emitting(monkeypatch, no_summary_task):
-    async def fake_create(uid): return 8
+    async def fake_create(uid, tenant_id="default"): return 8
     async def fake_append(cid, role, content=None, **k): return 1
     monkeypatch.setattr(runtime.repository, "create_conversation", fake_create)
     monkeypatch.setattr(runtime.repository, "append_message", fake_append)
@@ -158,7 +158,7 @@ async def test_stream_turn_dedups_actions_before_emitting(monkeypatch, no_summar
 
 @pytest.mark.asyncio
 async def test_stream_turn_emits_interrupt_event(monkeypatch, no_summary_task):
-    async def fake_create(uid): return 9
+    async def fake_create(uid, tenant_id="default"): return 9
     async def fake_append(cid, role, content=None, **k): return 1
     monkeypatch.setattr(runtime.repository, "create_conversation", fake_create)
     monkeypatch.setattr(runtime.repository, "append_message", fake_append)
@@ -191,7 +191,9 @@ async def test_resume_turn_drives_command(monkeypatch, no_summary_task):
             seen["resume"] = getattr(inp, "resume", None)
             return {"answer": "这一单可以退款", "messages": []}
 
-    async def fake_get(cid): return object()
+    async def fake_get(cid, tenant_id="default"):
+        assert tenant_id == "default"
+        return object()
     monkeypatch.setattr(runtime.repository, "get_conversation", fake_get)
     monkeypatch.setattr(runtime, "get_graph", lambda: FakeGraph())
     out = await runtime.resume_turn(5, "1001")

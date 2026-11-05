@@ -19,7 +19,8 @@ def _fake_state_with_tool_trace():
 
 
 def test_agent_endpoint_returns_tool_trace(monkeypatch):
-    async def fake_run_turn(user_id, message, conversation_id):
+    async def fake_run_turn(user_id, message, conversation_id, tenant_id="default"):
+        assert tenant_id == "default"
         return {"conversation_id": 12, "state": _fake_state_with_tool_trace()}
     monkeypatch.setattr(agent.runtime, "run_turn", fake_run_turn)
     client = TestClient(app)
@@ -34,7 +35,7 @@ def test_agent_endpoint_returns_tool_trace(monkeypatch):
 
 
 def test_agent_endpoint_chitchat_has_no_tool_calls(monkeypatch):
-    async def fake_run_turn(user_id, message, conversation_id):
+    async def fake_run_turn(user_id, message, conversation_id, tenant_id="default"):
         state = {"messages": [HumanMessage("你好"), AIMessage("你好呀,有什么可以帮你?")],
                  "answer": "你好呀,有什么可以帮你?", "conversation_id": 13}
         return {"conversation_id": 13, "state": state}
@@ -48,7 +49,7 @@ def test_agent_endpoint_chitchat_has_no_tool_calls(monkeypatch):
 
 
 def test_agent_endpoint_dedups_suggested_actions(monkeypatch):
-    async def fake_run_turn(user_id, message, conversation_id):
+    async def fake_run_turn(user_id, message, conversation_id, tenant_id="default"):
         state = {
             "messages": [HumanMessage("投诉"), AIMessage("已收到你的反馈。")],
             "answer": "已收到你的反馈。",

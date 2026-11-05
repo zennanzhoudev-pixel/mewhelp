@@ -19,8 +19,9 @@ def test_list_conversations_passes_user_id(conv_client, monkeypatch):
     from app.api import conversations as api
     seen = {}
 
-    async def fake_list(user_id):
+    async def fake_list(user_id, tenant_id=None):
         seen["user_id"] = user_id
+        seen["tenant_id"] = tenant_id
         return [{"id": 2, "status": "进行中", "preview": "猫粮怎么选",
                  "has_summary": False, "updated_at": None},
                 {"id": 1, "status": "进行中", "preview": "订单1001到哪了",
@@ -29,6 +30,7 @@ def test_list_conversations_passes_user_id(conv_client, monkeypatch):
 
     r = conv_client.get("/api/conversations", params={"user_id": "u1"})
     assert r.status_code == 200 and seen["user_id"] == "u1"
+    assert seen["tenant_id"] == "default"
     items = r.json()["items"]
     assert [it["id"] for it in items] == [2, 1]
     assert items[1]["has_summary"] is True
@@ -37,7 +39,8 @@ def test_list_conversations_passes_user_id(conv_client, monkeypatch):
 def test_list_messages_serializes_dialog(conv_client, monkeypatch):
     from app.api import conversations as api
 
-    async def fake_get(cid):
+    async def fake_get(cid, tenant_id="default"):
+        assert tenant_id == "default"
         return object()
 
     async def fake_msgs(cid):
@@ -55,7 +58,8 @@ def test_list_messages_serializes_dialog(conv_client, monkeypatch):
 def test_list_messages_404_when_missing(conv_client, monkeypatch):
     from app.api import conversations as api
 
-    async def fake_get(cid):
+    async def fake_get(cid, tenant_id="default"):
+        assert tenant_id == "default"
         return None
     monkeypatch.setattr(api.repository, "get_conversation", fake_get)
     assert conv_client.get("/api/conversations/999999/messages").status_code == 404

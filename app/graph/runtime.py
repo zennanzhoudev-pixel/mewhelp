@@ -138,9 +138,9 @@ async def run_turn(user_id, message, conversation_id, tenant_id: str = "default"
     return {"conversation_id": cid, "state": final, "interrupt": _interrupt_payload(final)}
 
 
-async def resume_turn(conversation_id: int, resume_value) -> dict:
+async def resume_turn(conversation_id: int, resume_value, tenant_id: str = "default") -> dict:
     """非流式续跑(供 /api/agent、eval):Command(resume) 回填后跑到下一个中断或结束。"""
-    if await repository.get_conversation(conversation_id) is None:
+    if await repository.get_conversation(conversation_id, tenant_id) is None:
         raise ConversationNotFound(conversation_id)
     config = {"configurable": {"thread_id": str(conversation_id)},
               "metadata": {"langfuse_session_id": str(conversation_id)}}
@@ -209,9 +209,10 @@ async def stream_turn(user_id, message, conversation_id,
     await summarizer.maybe_schedule_summary(cid)   # ch07 流吐完再触发(后台跑,不阻塞)
 
 
-async def stream_resume(conversation_id: int, resume_value) -> AsyncIterator[dict]:
+async def stream_resume(conversation_id: int, resume_value,
+                        tenant_id: str = "default") -> AsyncIterator[dict]:
     """前端点选订单后续跑同一会话的暂停流(Command(resume) 续 astream,事件与 stream_turn 同构)。"""
-    if await repository.get_conversation(conversation_id) is None:
+    if await repository.get_conversation(conversation_id, tenant_id) is None:
         raise ConversationNotFound(conversation_id)
     async for ev in _stream_events(conversation_id, Command(resume=resume_value)):
         yield ev

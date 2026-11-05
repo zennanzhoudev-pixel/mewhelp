@@ -10,13 +10,14 @@ API 不复算 MRR、不复判覆盖度:一旦这里也算一遍,页面和终端�
 import json
 import pathlib
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core import jobs
+from app.core.deps import require_admin
 from app.db import repository
 from app.schemas.rageval import FaithCaseStatusRequest
 
-router = APIRouter(prefix="/api/rag-eval")
+router = APIRouter(prefix="/api/rag-eval", dependencies=[Depends(require_admin)])
 
 REPORT = pathlib.Path(__file__).resolve().parents[2] / "data/ch04/reports/rag_eval.json"
 TEXT_LOG = REPORT.with_name("rag_eval.txt")

@@ -8,11 +8,13 @@
 - 开:`AUTH_ENABLED=true` + 设置 `JWT_SECRET`(强随机)。
 - 接口:`POST /api/auth/register`、`POST /api/auth/login`、`GET /api/auth/me`。
 - 首管理员:把 `ADMIN_USER`/`ADMIN_PASSWORD` 配好,注册同名用户即得 `admin` 角色。
-- 多租户:中间件把 token 里的 `tenant` 写入 `request.state.tenant_id`;需要你做的:接入方在各业务查询里按租户过滤(示例:conversations 接口已能按 user_id 过滤,租户级隔离需在接入方网关/查询层再补一层)。
+- RBAC:知识库、RAG 评估、待审队列、观测、主题、分类器验收、后台作业和 `/api/admin/*` 统一要求 `admin`;`viewer` 调用返回 403,无 token 返回 401。
+- 页面入口:聊天页右上角「后台管理」按角色显隐;直接打开后台页面时也会校验角色并跳回聊天页。真正的权限边界在后端 API。
+- 多租户:中间件把 token 里的 `tenant` 写入 `request.state.tenant_id`;会话列表、历史、续跑、工单、退款和反馈均校验会话所属租户,跨租户统一返回 404。
 
 ## 2. 限流 / 熔断 / 多副本
 
-- 限流:`app/core/ratelimit.py` + 中间件;开 `RATE_LIMIT_ENABLED=true`,按客户端 IP 滑动窗口计数。多副本需自行替换为 Redis 实现(接口 `RateLimiter.allow(key)`)。
+- 限流:`app/core/ratelimit.py` + 中间件;开 `RATE_LIMIT_ENABLED=true`,按客户端 IP 滑动窗口计数。配置 `REDIS_URL` 后使用 Redis 共享计数,多副本不会各自计算。
 - 熔断:`app/core/circuit.py`,已接入嵌入与重排调用;开 `CIRCUIT_BREAKER_ENABLED=true`(默认开)。
 - 多副本:checkpointer 换 Postgres(见第 7 项)后,应用可水平扩展;`langfuse`/MySQL/Milvus 各自独立。需要你:部署编排(K8s/多实例 + 负载均衡)。
 

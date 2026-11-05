@@ -3,11 +3,12 @@
 白名单在 app/core/jobs.py,argv 写死在那边。这里只负责把作业名换成一次运行——
 名字不在注册表里就 404,连命令都拼不出来。知识库建库(ch03)与分类器验收(ch10)共用这一套。
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.core import jobs
+from app.core.deps import require_admin
 
-router = APIRouter(prefix="/api/jobs")
+router = APIRouter(prefix="/api/jobs", dependencies=[Depends(require_admin)])
 
 
 def _known(name: str) -> None:

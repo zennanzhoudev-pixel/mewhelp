@@ -12,8 +12,9 @@ def test_root_serves_chat_page():
     # 页面自包含且对接 /api/chat 的 SSE
     assert "/api/chat" in resp.text
     assert "session_id" in resp.text
-    # 聊天页是客户看的页面,不留后台入口;后台各页自己带「聊天页 →」
-    assert 'href="/admin"' not in resp.text
+    # 后台入口由 auth.js 按角色显隐;viewer 看不到,admin 和本地无鉴权模式可见
+    assert 'href="/admin"' in resp.text
+    assert "data-admin-only" in resp.text
 
 
 def test_admin_pages_are_reachable():

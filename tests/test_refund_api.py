@@ -3,6 +3,10 @@ def test_create_refund_writes_ticket(client, monkeypatch):
         assert cid == 7 and ttype == "退款" and "1001" in desc and "质量问题" in desc
         return "T20260716001"
     from app.api import actions
+    async def fake_get(cid, tenant_id="default"):
+        assert cid == 7 and tenant_id == "default"
+        return object()
+    monkeypatch.setattr(actions.repository, "get_conversation", fake_get)
     monkeypatch.setattr(actions.repository, "create_ticket", fake_create)
     r = client.post("/api/actions/create-refund", json={
         "conversation_id": 7, "order_id": "1001", "reason": "质量问题"})
@@ -18,8 +22,8 @@ def test_create_refund_rejects_bad_reason(client):
 
 
 def test_resume_endpoint_streams(client, monkeypatch):
-    async def fake_stream_resume(cid, resume_value):
-        assert cid == 3 and resume_value == "1001"
+    async def fake_stream_resume(cid, resume_value, tenant_id="default"):
+        assert cid == 3 and resume_value == "1001" and tenant_id == "default"
         yield {"type": "delta", "text": "这一单可以退款"}
         yield {"type": "actions", "items": [{"type": "refund_form", "draft": {"order_id": "1001"}}]}
         yield {"type": "done", "conversation_id": 3}
@@ -34,8 +38,9 @@ def test_resume_endpoint_streams(client, monkeypatch):
 
 def test_resume_endpoint_confirmed_branch(client, monkeypatch):
     """ch08:工单预览卡确认/取消走 confirmed 字段,resume 值为 {"confirmed": bool}。"""
-    async def fake_stream_resume(cid, resume_value):
+    async def fake_stream_resume(cid, resume_value, tenant_id="default"):
         assert cid == 3 and resume_value == {"confirmed": False}
+        assert tenant_id == "default"
         yield {"type": "delta", "text": "已取消建单"}
         yield {"type": "done", "conversation_id": 3}
     from app.api import actions

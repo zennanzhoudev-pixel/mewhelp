@@ -25,7 +25,8 @@ def _data_payloads(lines: list[str]) -> list[dict]:
 
 
 def _fake_stream_turn(events: list[dict]):
-    async def fake(user_id, message, conversation_id):
+    async def fake(user_id, message, conversation_id, tenant_id="default"):
+        assert tenant_id == "default"
         for ev in events:
             yield ev
     return fake
@@ -100,7 +101,8 @@ async def test_chat_stream_includes_citations(monkeypatch):
 
 
 async def test_chat_stream_includes_actions(monkeypatch):
-    async def fake_stream(user_id, message, conversation_id):
+    async def fake_stream(user_id, message, conversation_id, tenant_id="default"):
+        assert tenant_id == "default"
         yield {"type": "delta", "text": "抱歉"}
         yield {"type": "actions", "items": [{"type": "transfer_human"},
                                             {"type": "create_ticket", "draft": {}}]}
@@ -128,7 +130,7 @@ async def test_chat_stream_includes_actions(monkeypatch):
 
 
 async def test_chat_unknown_conversation_emits_error_frame(monkeypatch):
-    async def fake_stream(user_id, message, conversation_id):
+    async def fake_stream(user_id, message, conversation_id, tenant_id="default"):
         raise runtime.ConversationNotFound(conversation_id)
         yield  # pragma: no cover - 让函数保持生成器形态
 
@@ -152,7 +154,7 @@ async def test_chat_unknown_conversation_emits_error_frame(monkeypatch):
 async def test_chat_db_error_emits_error_frame(monkeypatch):
     from sqlalchemy.exc import SQLAlchemyError
 
-    async def fake_stream(user_id, message, conversation_id):
+    async def fake_stream(user_id, message, conversation_id, tenant_id="default"):
         raise SQLAlchemyError("boom")
         yield  # pragma: no cover
 
@@ -173,7 +175,7 @@ async def test_chat_db_error_emits_error_frame(monkeypatch):
 
 
 async def test_chat_generic_error_emits_error_frame(monkeypatch):
-    async def fake_stream(user_id, message, conversation_id):
+    async def fake_stream(user_id, message, conversation_id, tenant_id="default"):
         raise RuntimeError("上游挂了")
         yield  # pragma: no cover
 

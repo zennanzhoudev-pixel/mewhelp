@@ -3,15 +3,16 @@
 向量化成功才置「通过」——保证审核页点了通过,下一问就能检索命中(验收 3)。"""
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.core.deps import require_admin
 from app.db import repository
 from app.kb import dualwrite
 from app.kb.documents import Chunk, is_key
 from app.schemas.review import ApproveRequest
 
 logger = logging.getLogger(__name__)
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_admin)])
 
 
 async def _write_chunks(chunks: list[Chunk]) -> list[int]:

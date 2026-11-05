@@ -3,12 +3,13 @@
 分布只给每类三条样例(一眼看出这类装的是什么);要看全,点类目名进问题列表,
 那边按类目分页列出全部归类结果——同一批 topic_classifications,两种粒度。
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.core.deps import require_admin
 from app.core.taxonomy import TOPIC_NAMES
 from app.db import repository
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_admin)])
 
 
 @router.get("/api/topics/distribution")

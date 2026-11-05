@@ -19,14 +19,15 @@
 import json
 import pathlib
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.config import settings
 from app.core import jobs
 from app.core.confidence import W_KEY, W_MARGIN, W_TOP1, W_VALID
+from app.core.deps import require_admin
 from app.db import repository
 
-router = APIRouter(prefix="/api/observability")
+router = APIRouter(prefix="/api/observability", dependencies=[Depends(require_admin)])
 
 REPORT_DIR = pathlib.Path(__file__).resolve().parents[2] / "data/ch09/reports"
 COST = REPORT_DIR / "cost_by_intent.json"

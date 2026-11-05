@@ -11,14 +11,15 @@ import pathlib
 from datetime import datetime
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.core import jobs
+from app.core.deps import require_admin
 from app.core.taxonomy import SEVERITY, TOPIC_NAMES
 from app.db import repository
 
-router = APIRouter(prefix="/api/acceptance")
+router = APIRouter(prefix="/api/acceptance", dependencies=[Depends(require_admin)])
 
 CH10 = pathlib.Path("data/ch10")
 REPORTS = CH10 / "reports"

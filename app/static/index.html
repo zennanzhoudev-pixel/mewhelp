@@ -121,7 +121,7 @@
     .head-meta .status { font-size: 11px; color: #6b5b48; display: flex; align-items: center; gap: 6px; }
     .dot-online { width: 8px; height: 8px; background: var(--online); border: 2px solid var(--ink); }
     header .spacer { flex: 1; }
-    #new-chat {
+    #new-chat, .admin-link {
       border: 3px solid var(--ink);
       background: var(--paper);
       color: var(--ink);
@@ -132,9 +132,13 @@
       cursor: pointer;
       box-shadow: var(--shadow-sm);
       transition: transform .06s steps(1), box-shadow .06s steps(1);
+      text-decoration: none;
     }
-    #new-chat:hover { background: #fff; }
-    #new-chat:active { transform: translate(3px, 3px); box-shadow: none; }
+    #new-chat:hover, .admin-link:hover { background: #fff; }
+    #new-chat:active, .admin-link:active { transform: translate(3px, 3px); box-shadow: none; }
+    .admin-link { background: var(--ink); color: var(--cream); }
+    .admin-link:hover { background: #463e51; color: #fff; }
+    .admin-link[hidden] { display: none; }
 
     /* ---------- messages ---------- */
     #messages {
@@ -461,6 +465,7 @@
         <span class="status"><span class="dot-online"></span>ONLINE · 喵喵优选</span>
       </div>
       <div class="spacer"></div>
+      <a id="admin-link" class="admin-link" href="/admin" data-admin-only hidden>后台管理</a>
       <button id="new-chat" type="button">＋ 新对话</button>
     </header>
 

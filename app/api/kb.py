@@ -12,16 +12,17 @@
 import datetime as dt
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.core import jobs, retrieval
+from app.core.deps import require_admin
 from app.db import repository
 from app.kb import chunking, dedup, documents, dualwrite, milvus_client
 from app.kb.sources import CONTENT_TYPE_DESC, CONTENT_TYPES, KB_DIR, SOURCE_TYPES
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/kb")
+router = APIRouter(prefix="/api/kb", dependencies=[Depends(require_admin)])
 
 MAX_TEXT_CHARS = 40000          # 单次录入正文上限:一份章节文档够用,防误贴整本手册把上游打爆
 STRATEGIES = ("vector", "bm25", "hybrid", "hybrid_rerank")

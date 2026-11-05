@@ -17,9 +17,14 @@ def client():
 def spy_insert(monkeypatch):
     calls = []
 
+    async def fake_get(cid, tenant_id="default"):
+        assert tenant_id == "default"
+        return object()
+
     async def fake_insert(cid, q, source, reason, retrieved_chunks=None):
         calls.append({"cid": cid, "q": q, "source": source, "chunks": retrieved_chunks})
         return 1
+    monkeypatch.setattr(feedback_api.repository, "get_conversation", fake_get)
     monkeypatch.setattr(feedback_api.repository, "insert_low_confidence", fake_insert)
     return calls
 
