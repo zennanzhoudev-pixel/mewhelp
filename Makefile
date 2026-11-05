@@ -2,7 +2,7 @@
 # (知识库、评估集)会抛 UnicodeDecodeError。必须在 Python 启动前生效,所以设在这里而不是 .env。
 export PYTHONUTF8 = 1
 
-.PHONY: help kb-repatch dev test eval eval-check judge-check seed eval-ch07 eval-agent kb-preview kb-build kb-vectorize kb-mine eval-retrieval seed-conv eval-mining kb-reset milvus-up milvus-down smoke-rag eval-rag smoke-interrupt eval-ch06 mcp-up mcp-down langfuse-up langfuse-down
+.PHONY: help kb-repatch dev test eval eval-check judge-check seed db-wait eval-ch07 eval-agent kb-preview kb-build kb-vectorize kb-mine eval-retrieval seed-conv eval-mining kb-reset milvus-up milvus-down smoke-rag eval-rag smoke-interrupt eval-ch06 mcp-up mcp-down langfuse-up langfuse-down
 
 # 目标一多就记不住谁要什么前置条件,带 ## 注释的挑出来列一遍
 help:  ## 列出带说明的目标
@@ -116,7 +116,13 @@ eval-rag:  ## 四策略评估(SKIP_GEN=1 只跑确定性两段,裁判上游挂�
 judge-check:  ## 忠实度裁判回归(重放台账个案的证据+答案,和人工处置对齐率)
 	PYTHONPATH=. uv run python scripts/judge_check.py
 
-seed:
+db-wait:  ## 等 MySQL 就绪(容器首启跑 init 脚本期间直接 seed 会撞上未就绪)
+	@for i in $$(seq 1 60); do \
+	  docker exec mewhelp-mysql mysqladmin ping -proot --silent 2>/dev/null && exit 0; \
+	  sleep 2; \
+	done; echo "MySQL 未就绪,请检查 docker compose ps" && exit 1
+
+seed: db-wait
 	docker exec -i mewhelp-mysql mysql --default-character-set=utf8mb4 -uroot -proot mewhelp < sql/ch02-seed.sql
 
 test:
@@ -156,7 +162,7 @@ kb-mine:
 eval-retrieval:
 	PYTHONPATH=. uv run python scripts/eval_retrieval.py
 
-seed-conv:
+seed-conv: db-wait
 	docker exec -i mewhelp-mysql mysql --default-character-set=utf8mb4 -uroot -proot mewhelp < sql/ch03-seed.sql
 
 eval-mining:
