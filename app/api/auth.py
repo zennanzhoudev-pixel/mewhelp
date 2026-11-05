@@ -32,6 +32,11 @@ class TokenResponse(BaseModel):
     tenant_id: str
 
 
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str = Field(min_length=8)
+
+
 def _issue(user_id: int, tenant_id: str, role: str) -> TokenResponse:
     return TokenResponse(
         token=security.create_token(user_id, tenant_id, [role]),
@@ -77,4 +82,18 @@ async def me(authorization: str | None = None) -> dict:
         "tenant_id": payload.get("tenant", "default"),
         "roles": payload.get("roles", []),
     }
+
+
+@router.post("/api/auth/change-password")
+async def change_password(req: ChangePasswordRequest, authorization: str | None = None) -> dict:
+    """登录后改密码:校验旧密码,更新为新密码。"""
+    token = (authorization or "").removeprefix("Bearer ")
+    payload = security.decode_token(token) if token else None
+    if not payload:
+        raise HTTPException(status_code=401, detail="凭证无效或已过期")
+    user = await repository.get_user_by_id(int(payload["sub"]))
+    if user is None or not security.verify_password(req.old_password, user.password_hash):
+        raise HTTPException(status_code=401, detail="旧密码错误")
+    await repository.update_user_password(user.id, security.hash_password(req.new_password))
+    return {"ok": True}
 

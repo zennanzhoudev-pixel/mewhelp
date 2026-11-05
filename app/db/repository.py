@@ -568,6 +568,21 @@ async def get_user_by_username(username: str) -> User | None:
         ).scalar_one_or_none()
 
 
+async def get_user_by_id(user_id: int) -> User | None:
+    async with db.async_session() as s:
+        return await s.get(User, user_id)
+
+
+async def update_user_password(user_id: int, password_hash: str) -> bool:
+    async with db.async_session() as s:
+        u = await s.get(User, user_id)
+        if u is None:
+            return False
+        u.password_hash = password_hash
+        await s.commit()
+        return True
+
+
 # ---------- ch10 主题分类 ----------
 
 def _pool_text_stmt():
