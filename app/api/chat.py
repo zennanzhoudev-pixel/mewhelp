@@ -2,7 +2,7 @@ import json
 import logging
 from collections.abc import AsyncIterator
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -23,10 +23,13 @@ def _sse_error(message: str) -> AsyncIterator[str]:
 
 
 @router.post("/api/chat")
-async def chat(req: ChatRequest):
+async def chat(req: ChatRequest, request: Request):
+    tenant_id = getattr(request.state, "tenant_id", None) or "default"
     async def event_stream() -> AsyncIterator[str]:
         try:
-            async for ev in runtime.stream_turn(req.user_id, req.message, req.conversation_id):
+            async for ev in runtime.stream_turn(
+                req.user_id, req.message, req.conversation_id, tenant_id=tenant_id
+            ):
                 if ev["type"] == "tool":
                     yield _sse({"event": "tool", "name": ev["name"]})
                 elif ev["type"] == "delta":

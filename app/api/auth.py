@@ -9,6 +9,12 @@ from app.db import repository
 router = APIRouter()
 
 
+@router.get("/api/auth/config")
+async def auth_config() -> dict:
+    """公开:前端据此决定要不要弹登录框。"""
+    return {"auth_enabled": settings.auth_enabled}
+
+
 class RegisterRequest(BaseModel):
     username: str = Field(min_length=3, max_length=64)
     password: str = Field(min_length=8)

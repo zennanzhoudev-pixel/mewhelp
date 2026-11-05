@@ -1,0 +1,22 @@
+groups:
+  - name: mewhelp
+    rules:
+      - alert: MewHelpMySQLDown
+        expr: up{job="mysql"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "MySQL exporter 不可达"
+      - alert: MewHelpMilvusDown
+        expr: up{job="milvus"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Milvus 指标不可达"
+      - alert: MewHelpDiskHigh
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) < 0.1
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "磁盘剩余不足 10%"
+

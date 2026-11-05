@@ -11,7 +11,8 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
 mcp = FastMCP("aftersales",
-              host="127.0.0.1", port=int(os.environ.get("PORT", "8102")))
+              host=os.environ.get("MCP_HOST", "127.0.0.1"),
+              port=int(os.environ.get("PORT", "8102")))
 
 _DELAY = float(os.environ.get("MOCK_DELAY_SECONDS", "0"))
 

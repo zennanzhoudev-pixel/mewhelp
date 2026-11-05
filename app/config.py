@@ -81,6 +81,7 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = False
     rate_limit_per_minute: int = 120
     rate_limit_burst: int = 30
+    redis_url: str = ""                   # 多副本限流;空=用进程内存版
     # 熔断(上游聊天/嵌入/重排)
     circuit_breaker_enabled: bool = True
     circuit_failure_threshold: int = 5

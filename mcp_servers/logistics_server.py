@@ -11,7 +11,8 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
 mcp = FastMCP("logistics",
-              host="127.0.0.1", port=int(os.environ.get("PORT", "8101")))
+              host=os.environ.get("MCP_HOST", "127.0.0.1"),
+              port=int(os.environ.get("PORT", "8101")))
 
 _DELAY = float(os.environ.get("MOCK_DELAY_SECONDS", "0"))
 _STATUS_CODES = ["PICKED_UP", "IN_TRANSIT", "DELIVERING", "DELIVERED"]  # 内部枚举码,client 侧翻人话

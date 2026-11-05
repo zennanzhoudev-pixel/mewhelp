@@ -30,17 +30,20 @@ def _gen_ticket_no() -> str:
     return f"T{datetime.now():%Y%m%d%H%M%S}{_TICKET_SEQ:03d}"
 
 
-async def create_conversation(user_id: str) -> int:
+async def create_conversation(user_id: str, tenant_id: str = "default") -> int:
     async with db.async_session() as s:
-        conv = Conversation(user_id=user_id)
+        conv = Conversation(user_id=user_id, tenant_id=tenant_id)
         s.add(conv)
         await s.commit()
         return conv.id
 
 
-async def get_conversation(conversation_id: int) -> Conversation | None:
+async def get_conversation(conversation_id: int, tenant_id: str | None = None) -> Conversation | None:
     async with db.async_session() as s:
-        return await s.get(Conversation, conversation_id)
+        conv = await s.get(Conversation, conversation_id)
+        if conv is not None and tenant_id is not None and (conv.tenant_id or "default") != tenant_id:
+            return None
+        return conv
 
 
 async def append_message(
@@ -118,12 +121,14 @@ async def list_dialog_messages(conversation_id: int) -> list[Message]:
         return list(result.scalars())
 
 
-async def list_conversations(user_id: str, limit: int = 50) -> list[dict]:
+async def list_conversations(user_id: str, limit: int = 50, tenant_id: str | None = None) -> list[dict]:
     """某用户的会话列表(新在前,带首问预览 + 有无摘要标记),前端多会话切换用。"""
     async with db.async_session() as s:
+        q = select(Conversation).where(Conversation.user_id == user_id)
+        if tenant_id is not None:
+            q = q.where(Conversation.tenant_id == tenant_id)
         convs = list((await s.execute(
-            select(Conversation).where(Conversation.user_id == user_id)
-            .order_by(Conversation.id.desc()).limit(limit)
+            q.order_by(Conversation.id.desc()).limit(limit)
         )).scalars())
         out = []
         for c in convs:

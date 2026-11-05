@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from langchain_core.messages import AIMessage, ToolMessage
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -27,9 +27,12 @@ def _views_from_state(state):
 
 
 @router.post("/api/agent", response_model=AgentResponse)
-async def run_agent(req: AgentRequest) -> AgentResponse:
+async def run_agent(req: AgentRequest, request: Request) -> AgentResponse:
+    tenant_id = getattr(request.state, "tenant_id", None) or "default"
     try:
-        out = await runtime.run_turn(req.user_id, req.message, req.conversation_id)
+        out = await runtime.run_turn(
+            req.user_id, req.message, req.conversation_id, tenant_id=tenant_id
+        )
     except runtime.ConversationNotFound:
         raise HTTPException(status_code=404, detail="会话不存在")
     except SQLAlchemyError:

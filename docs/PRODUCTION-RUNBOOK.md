@@ -248,3 +248,24 @@ make retention
 ## 上线顺序建议
 
 1 → 6 → 4(先本地跑通,再迁移密钥)→ 3 → 2 → 5。先保证单机功能与数据安全,再做多副本与对外暴露。
+
+## 仓库里已备好的现成产物
+
+| 文件 | 用途 |
+| --- | --- |
+| `Dockerfile` | 构建应用镜像(uv 装依赖,--no-sync 启动) |
+| `docker-compose.prod.yml` | MySQL + Postgres + Redis + Milvus + 2 个应用副本 + nginx |
+| `deploy/prod.env.example` | 生产 compose 的环境变量模板(服务名已对齐) |
+| `deploy/nginx.prod.conf` | 容器内反代(upstream app1/app2,SSE 关缓冲) |
+| `deploy/prometheus.yml` + `deploy/alert-rules.yml` | 监控采集与告警规则 |
+| `scripts/backup.sh` | MySQL + Milvus 数据卷一键备份 |
+
+用法:
+
+```bash
+cp deploy/prod.env.example deploy/prod.env   # 填密钥/密码
+mkdir -p deploy/certs                        # 放 fullchain.pem / privkey.pem
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+`app1`/`app2` 共享 Postgres checkpointer 与 MySQL,无需 sticky session;限流走 Redis(配 `REDIS_URL`)。

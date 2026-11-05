@@ -1,5 +1,5 @@
 """ch07 验收配套:会话列表 + 历史消息回载(只读,前端多会话切换用)。"""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from app.db import repository
 
@@ -7,14 +7,16 @@ router = APIRouter()
 
 
 @router.get("/api/conversations")
-async def list_conversations(user_id: str):
-    items = await repository.list_conversations(user_id)
+async def list_conversations(user_id: str, request: Request):
+    tenant_id = getattr(request.state, "tenant_id", None) or "default"
+    items = await repository.list_conversations(user_id, tenant_id=tenant_id)
     return {"items": items}
 
 
 @router.get("/api/conversations/{conversation_id}/messages")
-async def list_messages(conversation_id: int):
-    if await repository.get_conversation(conversation_id) is None:
+async def list_messages(conversation_id: int, request: Request):
+    tenant_id = getattr(request.state, "tenant_id", None) or "default"
+    if await repository.get_conversation(conversation_id, tenant_id) is None:
         raise HTTPException(status_code=404, detail="会话不存在")
     msgs = await repository.list_dialog_messages(conversation_id)
     return {"items": [
