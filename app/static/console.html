@@ -20,6 +20,7 @@
     .todo-list{display:grid;gap:9px}.todo{display:flex;align-items:center;gap:11px;padding:11px;border-radius:11px;background:#f8f9fc}.todo-icon{width:32px;height:32px;border-radius:9px;background:#e8f0ff;color:#3370ff;display:grid;place-items:center}.todo b{display:block;font-size:12px}.todo span{font-size:10px;color:#8b94a5}.todo strong{margin-left:auto;font-size:18px;color:#3370ff}
     .shortcuts{display:grid;gap:8px;margin-top:13px}.shortcuts a{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border:1px solid #eceef3;border-radius:10px;text-decoration:none;color:#424a5b;font-size:12px}.shortcuts a:hover{background:#f7f9ff}
     .loading{color:#98a0af;font-size:12px}.note{margin-top:16px;padding:11px 13px;border-radius:10px;background:#f1f6ff;color:#53647f;font-size:11px;line-height:1.7}
+    .workspace-frame{display:none;width:100%;height:calc(100vh - 68px);border:0;background:#f6f8fb}.workspace-frame.on{display:block}.content.view-hidden{display:none}
     @media(max-width:1000px){.shell{grid-template-columns:76px 1fr}.brand span:last-child,.nav span:last-child,.side-foot{display:none}.brand{padding-left:7px}.nav a{justify-content:center}.kpis{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.top{padding-right:80px}}
     @media(max-width:650px){.content{padding:18px 14px}.modules{grid-template-columns:1fr}.top{padding:0 70px 0 14px}.search{display:none}.kpis{grid-template-columns:1fr 1fr}}
   </style>
@@ -29,20 +30,21 @@
   <aside class="side">
     <div class="brand"><span class="brand-mark">M</span><span>MewHelp 管理台</span></div>
     <nav class="nav">
-      <a class="on" href="/console"><span class="ico">▦</span><span>工作台</span></a>
-      <a href="/admin/users"><span class="ico">♙</span><span>账号与权限</span></a>
-      <a href="/kb"><span class="ico">▤</span><span>知识库</span></a>
-      <a href="/review"><span class="ico">✓</span><span>内容审核</span></a>
-      <a href="/observability"><span class="ico">⌁</span><span>数据与成本</span></a>
-      <a href="/topics"><span class="ico">◎</span><span>主题分析</span></a>
-      <a href="/acceptance"><span class="ico">◇</span><span>模型验收</span></a>
-      <a href="/agent"><span class="ico">☏</span><span>人工客服</span></a>
+      <a class="on" data-view="" href="/console"><span class="ico">▦</span><span>工作台</span></a>
+      <a data-view="/admin/users" href="/admin/users"><span class="ico">♙</span><span>账号与权限</span></a>
+      <a data-view="/kb" href="/kb"><span class="ico">▤</span><span>知识库</span></a>
+      <a data-view="/review" href="/review"><span class="ico">✓</span><span>内容审核</span></a>
+      <a data-view="/observability" href="/observability"><span class="ico">⌁</span><span>数据与成本</span></a>
+      <a data-view="/topics" href="/topics"><span class="ico">◎</span><span>主题分析</span></a>
+      <a data-view="/acceptance" href="/acceptance"><span class="ico">◇</span><span>模型验收</span></a>
+      <a data-view="/agent" href="/agent"><span class="ico">☏</span><span>人工客服</span></a>
     </nav>
     <div class="side-foot">企业级智能客服<br>MewHelp Console v0.2</div>
   </aside>
   <main class="main">
     <div class="top"><div class="crumb">企业管理 / 工作台</div><div class="search">⌕ 搜索功能导航、账号、知识内容…</div></div>
-    <div class="content">
+    <iframe class="workspace-frame" id="workspaceFrame" title="管理模块"></iframe>
+    <div class="content" id="dashboardView">
       <div class="welcome"><div><h1>早上好，<span id="helloName">管理员</span></h1><p>这里是团队今天的服务与系统状态。</p></div><div class="date" id="today"></div></div>
       <section class="kpis">
         <div class="kpi"><label>团队成员</label><b id="userCount">—</b><small>当前租户账号</small></div>
@@ -53,7 +55,7 @@
       <div class="grid">
         <section class="panel"><h2>业务模块 <a href="/admin">查看完整旧版后台 →</a></h2><div class="modules" id="modules"><div class="loading">读取模块状态…</div></div><div class="note">这里复用现有知识库、检索评估、数据飞轮和模型验收能力；账号权限与人工客服是本次新增模块。</div></section>
         <div>
-          <section class="panel"><h2>业务待办</h2><div class="todo-list" id="todos"><div class="loading">读取待办…</div></div><div class="shortcuts"><a href="/agent"><span>进入人工客服工作台</span><span>→</span></a><a href="/admin/users"><span>邀请客服或管理员</span><span>→</span></a><a href="/"><span>返回顾客端</span><span>←</span></a></div></section>
+          <section class="panel"><h2>业务待办</h2><div class="todo-list" id="todos"><div class="loading">读取待办…</div></div><div class="shortcuts"><a data-view="/agent" href="/agent"><span>进入人工客服工作台</span><span>→</span></a><a data-view="/admin/users" href="/admin/users"><span>邀请客服或管理员</span><span>→</span></a><a href="/"><span>返回顾客端</span><span>←</span></a></div></section>
         </div>
       </div>
     </div>
@@ -81,7 +83,7 @@
     $("reviewCount").textContent = by.review?.metrics?.find((m) => m.label === "待审")?.value ?? "—";
     const labels = {ok:"正常", attention:"需处理", missing:"未配置", error:"异常"};
     $("modules").innerHTML = ov.modules.map((m) => `
-      <a class="module" href="${m.page}">
+      <a class="module" href="${m.page}" data-view="${m.page}">
         <div class="module-top"><b>${esc(m.title)}</b><span class="pill ${m.status}">${labels[m.status] || m.status}</span></div>
         <p>${esc(m.headline || "")}</p>
       </a>`).join("");
@@ -91,6 +93,28 @@
       <div class="todo"><span class="todo-icon">✓</span><div><b>飞轮知识待审</b><span>审核通过后立即写回知识库</span></div><strong>${by.review?.metrics?.find((m) => m.label === "待审")?.value ?? 0}</strong></div>`;
   }
   function esc(v) { return String(v ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
+  function openView(path, title, active) {
+    const frame = $("workspaceFrame"), dashboard = $("dashboardView");
+    if (!path) {
+      frame.classList.remove("on"); frame.removeAttribute("src");
+      dashboard.classList.remove("view-hidden");
+      document.querySelector(".crumb").textContent = "企业管理 / 工作台";
+    } else {
+      frame.src = path + (path.includes("?") ? "&" : "?") + "embed=1";
+      frame.classList.add("on"); dashboard.classList.add("view-hidden");
+      document.querySelector(".crumb").textContent = "企业管理 / " + title;
+    }
+    document.querySelectorAll(".nav a[data-view]").forEach((a) => a.classList.toggle("on", a === active));
+  }
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest && e.target.closest("[data-view]");
+    if (!a) return;
+    e.preventDefault();
+    const path = a.dataset.view || "";
+    const label = a.querySelector("span:last-child")?.textContent || a.textContent.trim();
+    const nav = path ? document.querySelector(`.nav a[data-view="${path}"]`) : document.querySelector('.nav a[data-view=""]');
+    openView(path, label, nav);
+  });
   window.addEventListener("mewhelp:auth-ready", load);
   if (window.MewHelpAuth.getIdentity()) load();
 </script>

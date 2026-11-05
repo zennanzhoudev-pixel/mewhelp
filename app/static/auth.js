@@ -6,6 +6,8 @@
   const rawFetch = window.fetch.bind(window);
   let identity = null;
   let authEnabled = false;
+  const embedded = new URLSearchParams(location.search).get("embed") === "1";
+  document.documentElement.dataset.embed = embedded ? "1" : "0";
 
   function getToken() { return localStorage.getItem(TOKEN_KEY) || ""; }
   function getIdentity() {
@@ -104,7 +106,7 @@
 
   function renderAccountMenu() {
     const me = getIdentity();
-    if (!me || document.getElementById("mh-account")) return;
+    if (!me || embedded || document.getElementById("mh-account")) return;
     const modern = ["/console", "/admin/users", "/agent"].includes(location.pathname);
     document.documentElement.dataset.mhTheme = modern ? "modern" : "classic";
     // 顾客聊天页和原有运营后台保持原有视觉；账号菜单只在新的三套工作台显示。

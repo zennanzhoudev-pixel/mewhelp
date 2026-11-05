@@ -50,6 +50,11 @@
   }
   .mh-nav .sub a:last-child { border-right: 0; }
   .mh-nav .sub a.on { background: #ff9f57; font-weight: 700; }
+  html[data-embed="1"] body {
+    padding: 0 !important; background: #f6f8fb !important; background-image: none !important;
+  }
+  html[data-embed="1"] .wrap { max-width: none !important; margin: 0 !important; padding: 20px 22px 60px !important; }
+  html[data-embed="1"] .topbar, html[data-embed="1"] .mh-nav { display: none !important; }
   @media (max-width: 640px) { .mh-nav .row .grow { display: none; } }
   `;
 
@@ -112,6 +117,19 @@
       w.insertBefore(nav, w.firstChild);
     }
     return nav;
+  }
+
+  // 内嵌在管理控制台时,模块内部链接也保持 embed=1,避免点进子页后又出现整页外壳。
+  if (document.documentElement.dataset.embed === "1") {
+    document.addEventListener("click", (e) => {
+      const a = e.target.closest && e.target.closest("a[href^='/']");
+      if (!a || a.target === "_blank") return;
+      const url = new URL(a.href, location.origin);
+      if (url.origin !== location.origin) return;
+      url.searchParams.set("embed", "1");
+      e.preventDefault();
+      location.href = url.pathname + "?" + url.searchParams.toString();
+    });
   }
 
   window.renderAdminNav = renderAdminNav;

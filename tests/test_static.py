@@ -58,3 +58,12 @@ def test_auth_profile_refresh_preserves_token_and_login_does_not_auto_redirect()
     assert "data.token || getToken()" in auth_js
     login_html = client.get("/login").text
     assert "redirectExisting" not in login_html
+
+
+def test_console_loads_management_modules_inside_same_content_area():
+    html = client.get("/console").text
+    assert 'id="workspaceFrame"' in html
+    assert 'data-view="/kb"' in html
+    assert 'data-view="/admin/users"' in html
+    admin_js = client.get("/static/admin.js").text
+    assert 'html[data-embed="1"] .topbar' in admin_js
