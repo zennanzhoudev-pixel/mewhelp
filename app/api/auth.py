@@ -1,5 +1,5 @@
 """注册 / 登录 / 我。仅在 auth_enabled 时启用;密码 PBKDF2 散列,签发 JWT。"""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from app.config import settings
@@ -72,8 +72,8 @@ async def login(req: LoginRequest) -> TokenResponse:
 
 
 @router.get("/api/auth/me")
-async def me(authorization: str | None = None) -> dict:
-    token = (authorization or "").removeprefix("Bearer ")
+async def me(request: Request) -> dict:
+    token = (request.headers.get("Authorization", "") or "").removeprefix("Bearer ")
     payload = security.decode_token(token) if token else None
     if not payload:
         raise HTTPException(status_code=401, detail="凭证无效或已过期")
@@ -85,9 +85,9 @@ async def me(authorization: str | None = None) -> dict:
 
 
 @router.post("/api/auth/change-password")
-async def change_password(req: ChangePasswordRequest, authorization: str | None = None) -> dict:
+async def change_password(req: ChangePasswordRequest, request: Request) -> dict:
     """登录后改密码:校验旧密码,更新为新密码。"""
-    token = (authorization or "").removeprefix("Bearer ")
+    token = (request.headers.get("Authorization", "") or "").removeprefix("Bearer ")
     payload = security.decode_token(token) if token else None
     if not payload:
         raise HTTPException(status_code=401, detail="凭证无效或已过期")

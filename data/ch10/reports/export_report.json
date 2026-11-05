@@ -1,6 +1,6 @@
 {
-  "ran_at": "2026-07-28T18:23:09",
-  "checked": 161,
+  "ran_at": "2026-11-05T16:24:35",
+  "checked": 45,
   "mismatch": 0,
   "passed": true,
   "onnx_path": "data/ch10/onnx/model.onnx",
