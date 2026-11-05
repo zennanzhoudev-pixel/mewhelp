@@ -11,6 +11,9 @@ class Conversation(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     user_id: Mapped[str] = mapped_column(String(64))
+    tenant_id: Mapped[str] = mapped_column(
+        String(64), default="default", server_default="default"
+    )  # ch11 多租户
     status: Mapped[str] = mapped_column(
         Enum("进行中", "已转人工", "已结束"), server_default="进行中"
     )
@@ -117,6 +120,8 @@ class ToolAuditLog(Base):
     error_message: Mapped[str | None] = mapped_column(String(512), nullable=True)
     retry_count: Mapped[int] = mapped_column(Integer, server_default="0")
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    prev_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)  # ch11 防篡改链
+    hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
@@ -200,3 +205,19 @@ class TopicClassification(Base):
         BigInteger, ForeignKey("low_confidence_questions.id"))
     labels: Mapped[list] = mapped_column(JSON)
     classified_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class User(Base):
+    """ch11 用户与角色:登录、租户、RBAC。"""
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(64), unique=True)
+    password_hash: Mapped[str] = mapped_column(String(256))
+    role: Mapped[str] = mapped_column(
+        Enum("admin", "agent", "viewer"), default="viewer", server_default="viewer"
+    )
+    tenant_id: Mapped[str] = mapped_column(String(64), default="default", server_default="default")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now, server_default=func.now()
+    )

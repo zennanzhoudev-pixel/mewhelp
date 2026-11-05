@@ -1,6 +1,7 @@
 from openai import AsyncOpenAI
 
 from app.config import settings
+from app.core import circuit
 
 _CLIENT: AsyncOpenAI | None = None
 
@@ -15,8 +16,11 @@ def _client() -> AsyncOpenAI:
 
 
 async def embed_texts(texts: list[str]) -> list[list[float]]:
-    resp = await _client().embeddings.create(model=settings.embed_model, input=texts)
-    return [d.embedding for d in resp.data]
+    async def _call():
+        resp = await _client().embeddings.create(model=settings.embed_model, input=texts)
+        return [d.embedding for d in resp.data]
+
+    return await circuit.embed_breaker.call(_call)
 
 
 async def embed_query(text: str) -> list[float]:

@@ -10,6 +10,7 @@ from app.core import coref
 from app.core import intent as intent_mod
 from app.core import memory
 from app.core import query_understanding, retrieval, selfcheck
+from app.core import skills
 from app.core.confidence import compute_evidence_confidence, snapshot_from_hits
 from app.core.llm import get_chat_model
 from app.core.observability import tag_intent
@@ -244,6 +245,10 @@ def _turn_context(state) -> str:
         parts.append(_KNOWLEDGE_EVIDENCE_HINT + state["evidence"])
     if state.get("route") == "refund_flow":
         parts.append(REFUND_JUDGE_HINT + json.dumps(state.get("order_data", {}), ensure_ascii=False))
+    if settings.skills_enabled:
+        skill = skills.skill_for_intent(state.get("intent", ""))
+        if skill:
+            parts.append("\n\n## 技能说明(运营维护的指令包)\n" + skill)
     return "".join(parts)     # 三段文本逐字沿用原来的常量,一个字都不改:这次只挪位置,
                               # 措辞一起动的话出了问题分不清是缓存改动还是提示词改动
 
@@ -315,6 +320,8 @@ async def main_agent(state, config=None) -> dict:
     specs = await registry.get_all_specs()   # ch08 现问现拿:内置+MCP 合并清单,每轮现拉
     model = get_chat_model(streaming=True).bind_tools([s.tool for s in specs])
     msgs = _agent_messages(state)
+    if settings.semantic_history_enabled:
+        msgs = await _inject_semantic_history(state, msgs)
     _log_model_context(state, msgs)   # ch07:摘要+滑窗进日志,验收 tail -f 可见
     ai: AIMessage = await model.ainvoke(msgs, config)
     usage = ai.usage_metadata or {}
@@ -328,6 +335,23 @@ async def main_agent(state, config=None) -> dict:
     return {"messages": [ai],
             "steps": state.get("steps", 0) + 1,
             "tokens_used": state.get("tokens_used", 0) + used}
+
+
+async def _inject_semantic_history(state, msgs: list) -> list:
+    """ch11 语义检索历史:把当前问题向量化,捞回被滑窗丢掉但语义相关的早前轮,追加为一条上下文。"""
+    turns = [
+        m.content for m in state.get("messages", [])
+        if getattr(m, "type", "") == "human" and isinstance(m.content, str) and m.content.strip()
+    ]
+    if len(turns) < 2:
+        return msgs
+    idxs = await memory.search_history(turns[-1], turns[:-1], settings.semantic_history_top_k)
+    if not idxs:
+        return msgs
+    block = "## 相关历史(按语义检索到的早前对话)\n" + "\n".join(
+        f"- {turns[i][:160]}" for i in idxs
+    )
+    return [*msgs, HumanMessage(block, id="semantic-history")]
 
 
 async def agent_tools(state) -> dict:

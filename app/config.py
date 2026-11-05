@@ -69,5 +69,37 @@ class Settings(BaseSettings):
     #  「观测与成本」页 /observability 上也能看,推荐值与这里不一致时页面会标出来)
     evidence_confidence_threshold: float = 0.26
 
+    # ---- 生产加固(全部默认关闭/兼容,打开才生效;详见 docs/PRODUCTION.md)----
+    # 鉴权与多租户
+    auth_enabled: bool = False            # True 时 /api/chat 等业务接口要求 Bearer JWT
+    jwt_secret: str = ""                  # 必填(JWT 签名密钥);生产从 KMS/Vault 注入
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 720
+    admin_user: str = "admin"             # 首个管理员(注册时若用户名匹配则授予 admin 角色)
+    admin_password: str = ""              # 首个管理员密码;空则禁用该种子
+    # 限流(内存滑动窗口;多副本请改 Redis 实现)
+    rate_limit_enabled: bool = False
+    rate_limit_per_minute: int = 120
+    rate_limit_burst: int = 30
+    # 熔断(上游聊天/嵌入/重排)
+    circuit_breaker_enabled: bool = True
+    circuit_failure_threshold: int = 5
+    circuit_recovery_seconds: int = 30
+    # 语义检索历史(在滑窗/摘要之上,按当前问题补捞相关历史轮)
+    semantic_history_enabled: bool = False
+    semantic_history_top_k: int = 3
+    # Skill 机制(本地技能包目录,按意图把说明注入 system)
+    skills_enabled: bool = False
+    skills_dir: str = "skills"
+    # 数据保留期(天,0=不清理)
+    retention_days_conversations: int = 0
+    retention_days_audit: int = 0
+    retention_days_low_conf: int = 0
+    # checkpointer 后端:sqlite(单机)/ postgres(多副本)
+    checkpointer_backend: str = "sqlite"
+    checkpointer_postgres_url: str = ""   # postgresql+psycopg://user:pass@host:5432/mewhelp
+    # PII 脱敏(入库/审计前打码;默认开)
+    pii_mask_enabled: bool = True
+
 
 settings = Settings()

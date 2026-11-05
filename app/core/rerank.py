@@ -4,6 +4,7 @@ import re
 import httpx
 
 from app.config import settings
+from app.core import circuit
 
 _VERSION_SEG = re.compile(r"/v\d+$")
 
@@ -64,10 +65,14 @@ async def rerank(query: str, docs: list[str], top_n: int | None = None) -> list[
         return []
     payload = {"model": settings.rerank_model, "query": query, "documents": docs,
                "top_n": top_n or len(docs)}
-    resp = await _post(_rerank_url(), payload,
-                       {"Authorization": f"Bearer {settings.rerank_api_key}"}, 60)
-    resp.raise_for_status()
-    results = resp.json()["results"]
-    ranked = sorted(((r["index"], float(r["relevance_score"])) for r in results),
-                    key=lambda x: x[1], reverse=True)
-    return ranked[:top_n] if top_n else ranked
+
+    async def _call():
+        resp = await _post(_rerank_url(), payload,
+                           {"Authorization": f"Bearer {settings.rerank_api_key}"}, 60)
+        resp.raise_for_status()
+        results = resp.json()["results"]
+        ranked = sorted(((r["index"], float(r["relevance_score"])) for r in results),
+                        key=lambda x: x[1], reverse=True)
+        return ranked[:top_n] if top_n else ranked
+
+    return await circuit.rerank_breaker.call(_call)

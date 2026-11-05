@@ -11,6 +11,7 @@ from app.api.acceptance import router as acceptance_router
 from app.api.actions import router as actions_router
 from app.api.admin import router as admin_router
 from app.api.agent import router as agent_router
+from app.api.auth import router as auth_router
 from app.api.chat import router as chat_router
 from app.api.conversations import router as conversations_router
 from app.api.extract import router as extract_router
@@ -21,6 +22,8 @@ from app.api.observability import router as observability_router
 from app.api.rageval import router as rageval_router
 from app.api.review import router as review_router
 from app.api.topics import router as topics_router
+from app.core.auth_middleware import AuthMiddleware
+from app.core.ratelimit_middleware import RateLimitMiddleware
 from app.graph import runtime
 
 # 让 app.* 的 INFO 日志可见(uvicorn 默认不给 app 记录器配 INFO handler,
@@ -69,6 +72,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="MewHelp", version="0.1.0", lifespan=lifespan)
+app.add_middleware(AuthMiddleware)
+app.add_middleware(RateLimitMiddleware)
+app.include_router(auth_router)
 app.include_router(actions_router)
 app.include_router(chat_router)
 app.include_router(extract_router)

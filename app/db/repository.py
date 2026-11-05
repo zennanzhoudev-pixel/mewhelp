@@ -1,8 +1,11 @@
+import hashlib
+import json
 from datetime import datetime
 
 from sqlalchemy import case, func, select, update
 
 import app.db.base as db          # 用模块属性引用,便于测试 monkeypatch async_session
+from app.core import pii
 from app.db.models import (
     Conversation,
     EvalRun,
@@ -15,6 +18,7 @@ from app.db.models import (
     Ticket,
     ToolAuditLog,
     TopicClassification,
+    User,
 )
 
 _TICKET_SEQ = 0
@@ -507,13 +511,56 @@ async def insert_tool_audit(
 ) -> None:
     """工具调用审计落一条。调用方(engine)自行 try/except——审计失败不许反拦工具执行。"""
     async with db.async_session() as s:
+        prev_hash = None
+        try:
+            prev_hash = (
+                await s.execute(
+                    select(ToolAuditLog.hash)
+                    .where(ToolAuditLog.hash.isnot(None))
+                    .order_by(ToolAuditLog.id.desc())
+                    .limit(1)
+                )
+            ).scalar_one_or_none()
+        except Exception:
+            prev_hash = None
+        canonical = json.dumps(
+            {
+                "tool_call_id": tool_call_id, "tool_name": tool_name,
+                "tool_source": tool_source, "status": status,
+                "arguments": arguments, "result_summary": result_summary,
+            },
+            ensure_ascii=False, sort_keys=True, default=str,
+        )
+        audit_hash = hashlib.sha256(f"{prev_hash or ''}|{canonical}".encode()).hexdigest()
         s.add(ToolAuditLog(
             conversation_id=conversation_id, tool_call_id=tool_call_id,
             tool_name=tool_name, tool_source=tool_source, mcp_server=mcp_server,
-            arguments=arguments, result_summary=result_summary, status=status,
-            error_message=error_message, retry_count=retry_count, duration_ms=duration_ms,
+            arguments=pii.mask_value(arguments),
+            result_summary=(pii.mask_text(result_summary) if result_summary is not None else None),
+            status=status,
+            error_message=(pii.mask_text(error_message) if error_message is not None else None),
+            retry_count=retry_count, duration_ms=duration_ms,
+            prev_hash=prev_hash, hash=audit_hash,
         ))
         await s.commit()
+
+
+# ---------- ch11 用户与多租户 ----------
+
+
+async def create_user(username: str, password_hash: str, role: str, tenant_id: str) -> int:
+    async with db.async_session() as s:
+        u = User(username=username, password_hash=password_hash, role=role, tenant_id=tenant_id)
+        s.add(u)
+        await s.commit()
+        return u.id
+
+
+async def get_user_by_username(username: str) -> User | None:
+    async with db.async_session() as s:
+        return (
+            await s.execute(select(User).where(User.username == username))
+        ).scalar_one_or_none()
 
 
 # ---------- ch10 主题分类 ----------

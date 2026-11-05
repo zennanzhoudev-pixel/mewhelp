@@ -70,3 +70,26 @@ def summary_system(summary: str | None) -> SystemMessage | None:
     if not summary:
         return None
     return SystemMessage(f"## 早前对话摘要(更早轮次已压缩,其中事实可信)\n{summary}")
+
+
+async def search_history(query: str, turns: list[str], top_k: int) -> list[int]:
+    """语义检索历史:把当前问题向量化,和历史各轮文本比对,返回最相关轮次下标(降序)。
+    在滑窗/摘要之上,补捞被时间窗口丢掉、但语义相关的早前对话。"""
+    if not turns:
+        return []
+    from app.core import embeddings
+
+    qv = await embeddings.embed_query(query)
+    tvs = await embeddings.embed_texts(turns)
+    scored = sorted(
+        ((_cosine(qv, tv), i) for i, tv in enumerate(tvs)),
+        key=lambda x: x[0], reverse=True,
+    )
+    return [i for _, i in scored[:top_k]]
+
+
+def _cosine(a: list[float], b: list[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b))
+    na = (sum(x * x for x in a)) ** 0.5
+    nb = (sum(y * y for y in b)) ** 0.5
+    return dot / (na * nb) if na and nb else 0.0

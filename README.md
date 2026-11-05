@@ -242,6 +242,7 @@ make ch10-golden / ch10-eval
 | [docs/COMPLIANCE.md](docs/COMPLIANCE.md) | 数据合规与安全边界 |
 | [docs/STATUS.md](docs/STATUS.md) | 能力状态矩阵与已知限制 |
 | [docs/FAQ.md](docs/FAQ.md) | 常见问题与踩坑 |
+| [docs/PRODUCTION.md](docs/PRODUCTION.md) | 生产加固清单(鉴权/限流/熔断/多副本等 8 项) |
 | [docs/superpowers/](docs/superpowers/) | 各章 spec 与 implementation plan |
 | [DEPLOY.md](DEPLOY.md) | 面向 AI 编程助手的逐步部署任务书 |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 贡献流程与代码规范 |

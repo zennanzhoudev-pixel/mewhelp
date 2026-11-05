@@ -29,14 +29,21 @@ class ConversationNotFound(Exception):
 
 
 async def init_graph() -> None:
-    """lifespan 起:开持久 checkpointer + setup + 编译图。"""
+    """lifespan 起:开持久 checkpointer + setup + 编译图。
+    checkpointer_backend=postgres 时用 AsyncPostgresSaver(多副本共享状态);默认 sqlite(单机)。"""
     global _graph, _cm
-    _cm = AsyncSqliteSaver.from_conn_string(settings.checkpointer_db_path)
-    checkpointer = await _cm.__aenter__()
-    await checkpointer.setup()
+    if settings.checkpointer_backend == "postgres":
+        from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+        _cm = AsyncPostgresSaver.from_conn_string(settings.checkpointer_postgres_url)
+        checkpointer = await _cm.__aenter__()
+        await checkpointer.setup()
+    else:
+        _cm = AsyncSqliteSaver.from_conn_string(settings.checkpointer_db_path)
+        checkpointer = await _cm.__aenter__()
+        await checkpointer.setup()
     # ch09:编译时挂一次 Langfuse 回调,全图自动 trace(未配置时原样返回,零依赖)
     _graph = attach_observability(build_graph(checkpointer=checkpointer))
-    logger.info("图已编译,checkpointer=%s", settings.checkpointer_db_path)
+    logger.info("图已编译,checkpointer=%s", settings.checkpointer_backend)
 
 
 async def close_graph() -> None:

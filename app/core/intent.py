@@ -19,8 +19,18 @@ class _Intent(BaseModel):
 async def classify(query: str, history: str = "") -> dict:
     """九类意图 + confidence(ch08 增「人工」:明确要求建工单/转人工)。扁平字段避开 glm 嵌套 502;
     解析失败/越界 → 归「其他」(最保守兜底,替换 ch05 的回退闲聊)。
-    模型默认走 settings.intent_model(空则回落 chat_model)——先求准。"""
-    model = llm.structured(_Intent, model=settings.intent_model or None)
+    intent_mode=cost 时:先用小模型判,置信度低于阈值再升级大模型重判(降本)。"""
+    if settings.intent_mode == "cost" and settings.intent_small_model:
+        small = await _classify_with(query, history, settings.intent_small_model)
+        if small["confidence"] >= settings.intent_conf_threshold:
+            return small
+        big = await _classify_with(query, history, settings.intent_model or None)
+        return big if big["confidence"] > small["confidence"] else small
+    return await _classify_with(query, history, settings.intent_model or None)
+
+
+async def _classify_with(query: str, history: str, model_name: str | None) -> dict:
+    model = llm.structured(_Intent, model=model_name)
     try:
         r: _Intent = await (INTENT_CLASSIFY_PROMPT | model).ainvoke(
             {"query": query, "history": history or "(无)"})
