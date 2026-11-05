@@ -34,7 +34,8 @@ async def _classify_with(query: str, history: str, model_name: str | None) -> di
     try:
         r: _Intent = await (INTENT_CLASSIFY_PROMPT | model).ainvoke(
             {"query": query, "history": history or "(无)"})
-    except Exception:
+    except Exception as exc:
+        llm.raise_if_terminal_upstream(exc)
         return {"intent": "其他", "confidence": 0.0}
     intent = r.intent if r.intent in INTENTS else "其他"
     return {"intent": intent, "confidence": float(r.confidence)}

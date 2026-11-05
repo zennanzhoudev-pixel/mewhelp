@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.access import can_access_conversation
+from app.core.llm import UpstreamBillingError
 from app.db import repository
 from app.graph import runtime
 from app.schemas.chat import ChatRequest
@@ -72,6 +73,11 @@ async def chat(req: ChatRequest, request: Request):
         except SQLAlchemyError:
             logger.exception("数据库错误 user_id=%s", user_id)
             for f in _sse_error("数据库暂时不可用,请稍后重试"):
+                yield f
+            return
+        except UpstreamBillingError:
+            logger.exception("模型服务余额或鉴权异常 user_id=%s", user_id)
+            for f in _sse_error("模型服务余额不足或 Key 无权限，请联系管理员充值/更换 API Key"):
                 yield f
             return
         except Exception:

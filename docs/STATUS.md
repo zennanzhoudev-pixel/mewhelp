@@ -7,7 +7,7 @@
 | 项目 | 证据 |
 | --- | --- |
 | 纯逻辑单测（chunking/去重/路由/停止条件/工具引擎/上下文/飞轮/taxonomy 等） | 本地可跑，无外部服务 |
-| 全量测试（含 MySQL / Milvus / MCP 集成） | 本地：**463 passed**；GitHub Actions 随每次 push 复跑 |
+| 全量测试（含 MySQL / Milvus / MCP 集成） | 本地：**467 passed**；GitHub Actions 随每次 push 复跑 |
 | Web 应用启动与页面 | 顾客端、独立登录、客服工作台、管理控制台、账号与原有后台页面均可达 |
 | 登录方式 | 用户名密码、手机号一次性验证码、二维码手机确认 |
 | 多角色界面 | `customer → /`、`agent → /agent`、`admin → /console` |

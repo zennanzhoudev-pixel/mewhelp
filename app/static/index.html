@@ -1117,7 +1117,15 @@
         const frames = buffer.split("\n\n");
         buffer = frames.pop() ?? "";
         for (const frame of frames) {
-          if (frame.startsWith("event: error")) throw new Error("stream error");
+          if (frame.startsWith("event: error")) {
+            const errorLine = frame.split("\n").find((l) => l.startsWith("data: "));
+            let message = "回复失败";
+            if (errorLine) {
+              try { message = JSON.parse(errorLine.slice(6)).message || message; }
+              catch (_) {}
+            }
+            throw new Error(message);
+          }
           const line = frame.split("\n").find((l) => l.startsWith("data: "));
           if (!line) continue;
           const payload = line.slice(6);
@@ -1204,7 +1212,7 @@
         }));
       } catch (err) {
         bubble.className = "bubble error";
-        bubble.textContent = "回复失败,请稍后重试";
+        bubble.textContent = err.message || "回复失败,请稍后重试";
       } finally {
         setBusy(false);
         loadConversations();   // ch07:每轮后刷新侧栏(新会话入列/摘要标记更新)

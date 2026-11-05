@@ -5,6 +5,7 @@ from langchain_core.messages import AIMessage, ToolMessage
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.access import can_access_conversation
+from app.core.llm import UpstreamBillingError
 from app.db import repository
 from app.graph import runtime
 from app.graph.nodes import resolve_answer
@@ -46,6 +47,12 @@ async def run_agent(req: AgentRequest, request: Request) -> AgentResponse:
     except SQLAlchemyError:
         logger.exception("数据库错误 user_id=%s", user_id)
         raise HTTPException(status_code=503, detail="数据库暂时不可用,请稍后重试")
+    except UpstreamBillingError:
+        logger.exception("模型服务余额或鉴权异常 user_id=%s", user_id)
+        raise HTTPException(
+            status_code=402,
+            detail="模型服务余额不足或 Key 无权限，请联系管理员充值/更换 API Key",
+        )
     except Exception:
         logger.exception("图编排失败 user_id=%s", user_id)
         raise HTTPException(status_code=502, detail="上游模型暂时不可用,请稍后重试")

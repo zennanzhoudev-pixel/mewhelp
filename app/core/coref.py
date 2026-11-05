@@ -1,4 +1,4 @@
-from app.core.llm import get_chat_model
+from app.core.llm import get_chat_model, raise_if_terminal_upstream
 from app.core.prompts import COREF_REWRITE_PROMPT
 
 
@@ -10,6 +10,7 @@ async def resolve(query: str, history: str = "") -> str:
         r = await (COREF_REWRITE_PROMPT | model).ainvoke(
             {"query": query, "history": history or "(无)"})
         text = (r.content if isinstance(r.content, str) else "").strip()
-    except Exception:
+    except Exception as exc:
+        raise_if_terminal_upstream(exc)
         return query
     return text or query

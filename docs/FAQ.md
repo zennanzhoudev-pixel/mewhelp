@@ -53,9 +53,28 @@ MySQL 存全字段原文（含章节路径、前后块指针、双写状态）�
 
 3306（MySQL）、19530（Milvus）、8000（应用）等被占会启动失败。要么停掉占用进程/容器，要么改端口（`.env` 的 `DATABASE_URL` / `MILVUS_URI`，应用的 `--port`）。
 
+## 为什么所有问题都回“抱歉，我不太确定您的意思”？
+
+旧版本会把模型的 401/402/403 异常降级成“其他”意图，用户因此看到固定兜底话术。
+新版本会直接显示真实原因：
+
+- HTTP `402` / SiliconFlow `code=30001`：当前 API Key 所属账户余额不足；
+- HTTP `401/403`：Key 无效、被删除或没有模型权限；
+- 处理方式：给 `.env` 里同一账号的 `CHAT_API_KEY` 充值，或换成有额度账号的 Key，然后重启应用。
+
+先用以下命令验证模型账户，不要把 Key 发到聊天或提交到仓库：
+
+```bash
+set -a; source .env; set +a
+curl -sS -o /tmp/model.json -w '%{http_code}\n' "$CHAT_BASE_URL/chat/completions" \
+  -H "Authorization: Bearer $CHAT_API_KEY" -H 'Content-Type: application/json' \
+  -d "{\"model\":\"$CHAT_MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"OK\"}],\"max_tokens\":8}"
+cat /tmp/model.json
+```
+
 ## 测试为什么有跳过 / 失败？
 
-DB / Milvus / MCP 测试需要对应服务。本地没起服务时会跳过或报连接错；CI 里全部启动，当前 463 个全绿。先 `docker compose up -d && make milvus-up` 再 `make test`。
+DB / Milvus / MCP 测试需要对应服务。本地没起服务时会跳过或报连接错；CI 里全部启动，当前 467 个全绿。先 `docker compose up -d && make milvus-up` 再 `make test`。
 
 ## 能不能不装 Docker？
 

@@ -1,4 +1,7 @@
 """型号机械闸:拿 ch04 评估真判出来的那条幻觉当第一条用例。"""
+import pytest
+
+from app.core.llm import UpstreamBillingError, raise_if_terminal_upstream
 from app.core import model_guard as g
 
 # A52 的真实答案片段:库里只有 MH-CAM1 和 MH-FD30,答案里冒出了不存在的 MH-CAD1
@@ -39,3 +42,15 @@ def test_不把普通编号当型号():
 def test_重写提示只点名不猜正确型号():
     hint = g.repair_hint(["MH-CAD1"])
     assert "MH-CAD1" in hint and "MH-CAM1" not in hint
+
+
+def test_模型欠费不再被吞成普通兜底():
+    class ApiError(RuntimeError):
+        status_code = 402
+
+    with pytest.raises(UpstreamBillingError, match="余额不足"):
+        raise_if_terminal_upstream(ApiError("insufficient balance"))
+
+
+def test_普通模型异常仍允许调用点降级():
+    raise_if_terminal_upstream(RuntimeError("temporary parse issue"))

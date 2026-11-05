@@ -11,6 +11,24 @@ logger = logging.getLogger(__name__)
 _TRUTHY = {"1", "true", "yes", "on"}
 
 
+class UpstreamBillingError(RuntimeError):
+    """上游明确返回余额/额度不足;继续重试和意图降级只会掩盖真实故障。"""
+
+
+def raise_if_terminal_upstream(exc: Exception) -> None:
+    """把 401/402/403 和余额不足从可降级的普通异常里分离出来。
+
+    普通网络抖动/结构化输出失败仍允许调用点走安全兜底;但鉴权失败和欠费必须上抛到
+    API,否则用户会看到“没听懂”这种与真实原因无关的回复。
+    """
+    status = getattr(exc, "status_code", None)
+    text = str(exc).lower()
+    if status == 402 or "insufficient" in text or "余额不足" in text or "code=30001" in text:
+        raise UpstreamBillingError("模型服务账户余额不足") from exc
+    if status in (401, 403):
+        raise UpstreamBillingError("模型服务鉴权失败或账户无权限") from exc
+
+
 def _diff_usage(cur: dict, prev: dict) -> dict:
     """把累计用量换成相对上一个 chunk 的增量,嵌套的 *_details 一起换。"""
     out: dict = {}

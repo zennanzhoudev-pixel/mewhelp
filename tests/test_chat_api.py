@@ -180,6 +180,26 @@ async def test_chat_db_error_emits_error_frame(monkeypatch):
     assert "data: [DONE]" not in lines
 
 
+async def test_chat_billing_error_is_not_masked_as_unknown_intent(monkeypatch):
+    from app.core.llm import UpstreamBillingError
+
+    async def fake_stream(user_id, message, conversation_id, tenant_id="default"):
+        raise UpstreamBillingError("余额不足")
+        yield  # pragma: no cover
+
+    monkeypatch.setattr(runtime, "stream_turn", fake_stream)
+    async with _client() as client:
+        async with client.stream(
+            "POST", "/api/chat", json={"user_id": "u1", "message": "会员有什么权益?"},
+        ) as resp:
+            lines = await _collect_sse(resp)
+
+    assert "event: error" in lines
+    idx = lines.index("event: error")
+    payload = next(json.loads(l[len("data: "):]) for l in lines[idx + 1:] if l.startswith("data: "))
+    assert "余额不足" in payload["message"]
+
+
 async def test_chat_generic_error_emits_error_frame(monkeypatch):
     async def fake_stream(user_id, message, conversation_id, tenant_id="default"):
         raise RuntimeError("上游挂了")

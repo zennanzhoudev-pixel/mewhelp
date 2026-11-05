@@ -90,6 +90,18 @@ def test_agent_endpoint_503_on_db_error(monkeypatch):
     assert r.status_code == 503
 
 
+def test_agent_endpoint_402_on_model_billing_error(monkeypatch):
+    from app.core.llm import UpstreamBillingError
+
+    async def fake_run_turn(*a, **k):
+        raise UpstreamBillingError("余额不足")
+
+    monkeypatch.setattr(agent.runtime, "run_turn", fake_run_turn)
+    r = TestClient(app).post("/api/agent", json={"user_id": "u1", "message": "hi"})
+    assert r.status_code == 402
+    assert "余额不足" in r.json()["detail"]
+
+
 def test_agent_endpoint_502_on_generic_failure(monkeypatch):
     async def fake_run_turn(*a, **k):
         raise RuntimeError("upstream boom")
