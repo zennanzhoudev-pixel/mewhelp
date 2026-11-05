@@ -36,7 +36,7 @@
 | 能力 | 状态 |
 | --- | --- |
 | 纯逻辑/单元测试（chunking、检索编排、意图分流、上下文、工具引擎、飞轮、taxonomy 等） | ✅ 本地可跑，无需外部服务 |
-| 全量测试套件（含 MySQL / Milvus / MCP 集成） | ✅ 本地 **461 passed**；GitHub Actions 随 push 复跑 |
+| 全量测试套件（含 MySQL / Milvus / MCP 集成） | ✅ 本地 **463 passed**；GitHub Actions 随 push 复跑 |
 | Web 应用、独立登录页与角色工作台 | ✅ 顾客聊天 `/`、客服 `/agent`、管理 `/console`、账号管理 `/admin/users` |
 | 真实对话 / 工具调用 / 检索 / 飞轮 / 评估 | ⚠️ 需要你填 `.env` 三组上游密钥，并起 MySQL + Milvus（+ Langfuse） |
 | ch10 训练 / ONNX 导出 | ⚠️ 重依赖走 `ml` 组，需 GPU/MPS 或较长时间 CPU 训练 |
@@ -223,7 +223,7 @@ docs/         架构/设计/接口/配置/测试/部署/合规/状态 + 各章 s
 ## 9. 测试
 
 ```bash
-make test          # 全量 pytest（需 MySQL + Milvus 起好；当前 461 个）
+make test          # 全量 pytest（需 MySQL + Milvus 起好；当前 463 个）
 make eval          # ch01 结构化提取标注样例
 make eval-agent    # ch02 工具选中标注样例
 make eval-retrieval# ch03 语义召回

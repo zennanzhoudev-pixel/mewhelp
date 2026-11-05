@@ -51,3 +51,10 @@ def test_identity_and_support_pages_are_reachable():
         resp = client.get(path)
         assert resp.status_code == 200, path
         assert marker in resp.text, path
+
+
+def test_auth_profile_refresh_preserves_token_and_login_does_not_auto_redirect():
+    auth_js = client.get("/static/auth.js").text
+    assert "data.token || getToken()" in auth_js
+    login_html = client.get("/login").text
+    assert "redirectExisting" not in login_html

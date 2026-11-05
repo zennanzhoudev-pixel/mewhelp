@@ -30,7 +30,7 @@
     .pane{display:none}.pane.on{display:block;animation:fade .15s ease}@keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
     .qr-wrap{display:grid;place-items:center;text-align:center}.qr-box{width:224px;height:224px;border-radius:18px;border:1px solid #e6e9f0;background:#fff;display:grid;place-items:center;overflow:hidden;position:relative}.qr-box img{width:210px;height:210px;display:block}
     .qr-box .loading{color:#8992a5;font-size:13px}.qr-refresh{position:absolute;inset:0;background:rgba(255,255,255,.92);display:none;place-items:center;text-align:center;color:#5d6678;font-size:13px;line-height:1.7}.qr-refresh.show{display:grid}.qr-refresh button{border:0;background:var(--blue);color:#fff;border-radius:8px;padding:7px 12px;margin-top:8px;cursor:pointer}
-    .qr-tip{margin:17px 0 5px;font-weight:650;font-size:14px}.qr-sub{color:var(--muted);font-size:12px;line-height:1.65}.mobile-link{word-break:break-all;margin-top:8px;color:#a1a8b8;font-size:10px}
+    .qr-tip{margin:17px 0 5px;font-weight:650;font-size:14px}.qr-sub{color:var(--muted);font-size:12px;line-height:1.65}.mobile-link{word-break:break-all;margin-top:8px;color:#a1a8b8;font-size:10px;display:flex;gap:7px;justify-content:center;align-items:center;flex-wrap:wrap}.mobile-link button{border:0;background:#eef3ff;color:#3370ff;border-radius:6px;padding:4px 7px;font-size:10px;cursor:pointer}.qr-warn{margin-top:8px;color:#b16b00;background:#fff6e8;border-radius:8px;padding:7px 9px;font-size:10px;line-height:1.6;display:none}.qr-warn.show{display:block}
     .field{position:relative;margin-bottom:13px}.field input{width:100%;height:44px;border:1px solid #dfe3eb;border-radius:10px;padding:0 13px;color:var(--ink);font-size:14px;background:#fff;outline:none;transition:.15s}.field input:focus{border-color:#7aa2ff;box-shadow:0 0 0 3px rgba(51,112,255,.1)}
     .field.with-btn input{padding-right:112px}.sms-btn{position:absolute;right:6px;top:6px;height:32px;border:0;border-radius:7px;background:#eef3ff;color:#3370ff;font-size:12px;padding:0 11px;cursor:pointer}.sms-btn:disabled{color:#a1a8b8;background:#f3f4f7;cursor:not-allowed}
     .primary{width:100%;height:44px;border:0;border-radius:10px;background:linear-gradient(135deg,#3370ff,#5b8cff);color:#fff;font:650 14px inherit;cursor:pointer;box-shadow:0 8px 20px rgba(51,112,255,.24)}.primary:disabled{opacity:.55;cursor:wait}
@@ -80,7 +80,8 @@
           <div class="qr-box" id="qrBox"><div class="loading">正在生成二维码…</div><div class="qr-refresh" id="qrRefresh"><div>二维码已失效<br><button type="button" id="qrAgain">刷新二维码</button></div></div></div>
           <div class="qr-tip">使用手机相机扫码确认登录</div>
           <div class="qr-sub">二维码 2 分钟内有效。扫码后在手机端输入账号密码确认。</div>
-          <div class="mobile-link" id="mobileUrl"></div>
+          <div class="mobile-link"><span id="mobileUrl"></span><button type="button" id="copyMobile">复制手机链接</button><button type="button" id="openMobile">打开确认页</button></div>
+          <div class="qr-warn" id="qrWarn"></div>
         </div>
       </div>
 
@@ -141,20 +142,6 @@
       if (!r.ok) throw new Error(d.detail || "请求失败");
       return d;
     }
-    async function redirectExisting() {
-      const token = localStorage.getItem(TOKEN_KEY);
-      if (!token) return false;
-      try {
-        const me = await api("/api/auth/me", { headers: { Authorization: "Bearer " + token } });
-        saveSession({ ...me, token, role: me.role || (me.roles || [])[0] });
-        location.replace(safeNext(me.role || (me.roles || [])[0]));
-        return true;
-      } catch (_) {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(PROFILE_KEY);
-        return false;
-      }
-    }
     function switchTab(name) {
       currentTab = name;
       document.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
@@ -179,6 +166,13 @@
         img.src = d.qr_svg;
         box.insertBefore(img, $("qrRefresh"));
         $("mobileUrl").textContent = d.mobile_url;
+        const warn = $("qrWarn");
+        if (/127\.0\.0\.1|localhost/.test(d.mobile_url)) {
+          warn.textContent = "当前二维码只指向电脑本机，手机无法打开。请把 PUBLIC_BASE_URL 改成手机可访问的局域网 IP 或公网域名。";
+          warn.classList.add("show");
+        } else {
+          warn.classList.remove("show");
+        }
         let left = d.expires_in;
         qrTimer = setInterval(async () => {
           left -= 2;
@@ -201,6 +195,16 @@
       }
     }
     $("qrAgain").addEventListener("click", startQr);
+    $("copyMobile").addEventListener("click", async () => {
+      const value = $("mobileUrl").textContent;
+      if (!value) return;
+      try { await navigator.clipboard.writeText(value); $("copyMobile").textContent = "已复制"; }
+      catch (_) { prompt("复制手机访问地址", value); }
+    });
+    $("openMobile").addEventListener("click", () => {
+      const value = $("mobileUrl").textContent;
+      if (value) window.open(value, "_blank", "noopener");
+    });
     document.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 
     $("smsSend").addEventListener("click", async () => {
@@ -214,6 +218,7 @@
         });
         msg.classList.add("ok");
         msg.textContent = d.debug_code ? "本地验证码：" + d.debug_code : "验证码已发送";
+        if (d.debug_code) $("smsCode").value = d.debug_code;
         let n = 60;
         button.disabled = true;
         const timer = setInterval(() => {
@@ -264,7 +269,7 @@
     (async () => {
       const cfg = await api("/api/auth/config").catch(() => ({ auth_enabled: false }));
       if (!cfg.auth_enabled) { location.replace("/"); return; }
-      if (!(await redirectExisting())) startQr();
+      startQr();
     })();
   </script>
 </body>

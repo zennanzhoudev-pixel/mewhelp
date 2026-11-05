@@ -14,7 +14,8 @@
     catch (_) { return null; }
   }
   function saveSession(data) {
-    localStorage.setItem(TOKEN_KEY, data.token || "");
+    // /api/auth/me 不返回 token;刷新用户资料时必须保留已有 token,否则会把登录态清空。
+    localStorage.setItem(TOKEN_KEY, data.token || getToken());
     const profile = {
       user_id: data.user_id,
       username: data.username,
@@ -81,6 +82,11 @@
       #mh-account-menu a,#mh-account-menu button{display:flex;width:100%;border:0;background:transparent;text-align:left;padding:10px 11px;border-radius:8px;color:#303849;text-decoration:none;font:12px/1.3 inherit;cursor:pointer;box-sizing:border-box}
       #mh-account-menu a:hover,#mh-account-menu button:hover{background:#f3f6ff;color:#245bdb}
       #mh-account-menu .danger{color:#d54941}
+      html[data-mh-theme="classic"] #mh-account-btn{border:3px solid #2b2632;border-radius:0;background:#fffaf0;box-shadow:3px 3px 0 #2b2632;font-family:ui-monospace,"SF Mono",Consolas,monospace}
+      html[data-mh-theme="classic"] .mh-avatar{border-radius:0;background:#ff7a59;border:2px solid #2b2632}
+      html[data-mh-theme="classic"] #mh-account-menu{border:3px solid #2b2632;border-radius:0;box-shadow:5px 5px 0 #2b2632;font-family:ui-monospace,"SF Mono",Consolas,monospace}
+      html[data-mh-theme="classic"] #mh-account-menu a,html[data-mh-theme="classic"] #mh-account-menu button{border-radius:0}
+      html[data-mh-theme="classic"] #mh-account-menu a:hover,html[data-mh-theme="classic"] #mh-account-menu button:hover{background:#ffedd6;color:#2b2632}
       #mh-pass-mask{display:none;position:fixed;inset:0;background:rgba(22,29,45,.42);z-index:10000;align-items:center;justify-content:center}
       #mh-pass-mask.open{display:flex}
       #mh-pass-box{width:330px;background:#fff;border-radius:16px;padding:22px;box-shadow:0 28px 80px rgba(0,0,0,.25);color:#202636}
@@ -99,6 +105,10 @@
   function renderAccountMenu() {
     const me = getIdentity();
     if (!me || document.getElementById("mh-account")) return;
+    const modern = ["/console", "/admin/users", "/agent"].includes(location.pathname);
+    document.documentElement.dataset.mhTheme = modern ? "modern" : "classic";
+    // 顾客聊天页和原有运营后台保持原有视觉；账号菜单只在新的三套工作台显示。
+    if (!modern) return;
     injectStyles();
     const box = document.createElement("div");
     box.id = "mh-account";

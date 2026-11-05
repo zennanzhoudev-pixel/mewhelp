@@ -75,6 +75,23 @@ async def test_sms_code_is_hashed_and_single_use(client, monkeypatch):
     assert reused.status_code == 401
 
 
+async def test_sms_login_auto_creates_customer_for_new_phone(client, monkeypatch):
+    async def fake_send(phone, code):
+        return None
+
+    monkeypatch.setattr(sms, "send_login_code", fake_send)
+    sent = await client.post("/api/auth/sms/send", json={"phone": "13700137000"})
+    assert sent.status_code == 200
+    code = sent.json()["debug_code"]
+    logged_in = await client.post("/api/auth/sms/login", json={
+        "phone": "13700137000", "code": code,
+    })
+    assert logged_in.status_code == 200
+    assert logged_in.json()["role"] == "customer"
+    assert logged_in.json()["phone"] == "13700137000"
+    assert (await repository.get_user_by_phone("13700137000")) is not None
+
+
 async def test_qr_login_requires_mobile_approval_and_is_one_time(client):
     start = await client.post("/api/auth/qr/start")
     assert start.status_code == 200

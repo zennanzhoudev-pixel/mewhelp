@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import ipaddress
 import re
 import secrets
 from datetime import datetime, timedelta
+from urllib.parse import urlsplit, urlunsplit
 
 import segno
 from fastapi import APIRouter, HTTPException, Request
@@ -90,7 +92,20 @@ def _code_hash(phone: str, code: str) -> str:
 
 
 def _public_base(request: Request) -> str:
-    return (settings.public_base_url or str(request.base_url)).rstrip("/")
+    if not settings.public_base_url:
+        return str(request.base_url).rstrip("/")
+    configured = settings.public_base_url.rstrip("/")
+    parts = urlsplit(configured)
+    try:
+        private_target = ipaddress.ip_address(parts.hostname or "").is_private
+    except ValueError:
+        private_target = parts.hostname in {"localhost", "127.0.0.1"}
+    local_request = request.url.hostname in {"localhost", "127.0.0.1", "::1"}
+    if private_target and local_request and request.url.port:
+        # 本地常同时跑 8000/8001 验证端口;二维码主机保留局域网 IP,端口跟随当前页面。
+        netloc = f"{parts.hostname}:{request.url.port}"
+        configured = urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+    return configured
 
 
 @router.get("/api/auth/config")
@@ -143,7 +158,8 @@ async def send_sms_code(req: SmsSendRequest) -> dict:
         raise HTTPException(status_code=400, detail="鉴权未启用")
     phone = _normalize_phone(req.phone)
     u = await repository.get_user_by_phone(phone)
-    _ensure_active(u)
+    if u is not None:
+        _ensure_active(u)
     latest = await repository.latest_login_code(phone)
     now = datetime.now()
     if latest and latest.created_at and (now - latest.created_at).total_seconds() < settings.sms_resend_seconds:
@@ -175,6 +191,19 @@ async def sms_login(req: SmsLoginRequest) -> TokenResponse:
         await repository.update_login_code(row, attempts=row.attempts + 1)
         raise HTTPException(status_code=401, detail="验证码错误")
     u = await repository.get_user_by_phone(phone)
+    if u is None:
+        username = f"phone_{phone}"
+        if await repository.get_user_by_username(username):
+            username = f"{username}_{secrets.token_hex(3)}"
+        uid = await repository.create_managed_user(
+            username,
+            security.hash_password(secrets.token_urlsafe(32)),
+            "customer",
+            "default",
+            phone=phone,
+            display_name=f"用户{phone[-4:]}",
+        )
+        u = await repository.get_user_by_id(uid)
     _ensure_active(u)
     await repository.update_login_code(row, used_at=datetime.now())
     await repository.touch_user_login(u.id)
