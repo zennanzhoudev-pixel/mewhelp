@@ -10,7 +10,6 @@ __pycache__/
 .superpowers/
 data/*.db*
 data/*.sqlite*
-dev-notes/
 log/
 logs/
 *.pid

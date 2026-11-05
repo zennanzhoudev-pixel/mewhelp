@@ -11,6 +11,7 @@
 | [DEPLOYMENT.md](DEPLOYMENT.md) | 部署、端口、健康检查、生产化建议、排障 |
 | [COMPLIANCE.md](COMPLIANCE.md) | 数据分类、密钥、第三方数据流、PII、保留删除 |
 | [STATUS.md](STATUS.md) | 已验证 / 需外部条件 / 未实现 |
+| [FAQ.md](FAQ.md) | 常见问题与踩坑 |
 | [../DEPLOY.md](../DEPLOY.md) | 面向 AI 助手的逐步部署任务书 |
 | [superpowers/specs](superpowers/specs) | 各章设计定稿（ch01–ch10） |
 | [superpowers/plans](superpowers/plans) | 各章实现计划（ch01–ch10） |

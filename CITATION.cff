@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+title: MewHelp
+message: "若在你的工作或演示中引用了本项目,请按此格式标注。"
+type: software
+authors:
+  - name: MewHelp contributors
+license: MIT
+repository-code: "https://github.com/Zennanzhoudev-Pixel/mewhelp"
+url: "https://github.com/Zennanzhoudev-Pixel/mewhelp"

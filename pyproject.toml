@@ -1,7 +1,20 @@
 [project]
 name = "mewhelp"
 version = "0.1.0"
+description = "MewHelp — 生产级电商 AI 智能客服(FastAPI + LangGraph + Milvus + MySQL)"
+readme = "README.md"
 requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "MewHelp contributors" }]
+keywords = ["ai-agent", "customer-service", "rag", "llm", "langgraph", "milvus", "fastapi", "mcp", "langfuse"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: FastAPI",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+]
 dependencies = [
     "aiosqlite>=0.20",
     "asyncmy>=0.2.9",
@@ -40,6 +53,12 @@ ml = [
     "onnxruntime>=1.20",
     "tokenizers>=0.20",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Zennanzhoudev-Pixel/mewhelp"
+Documentation = "https://github.com/Zennanzhoudev-Pixel/mewhelp/tree/main/docs"
+Repository = "https://github.com/Zennanzhoudev-Pixel/mewhelp"
+Issues = "https://github.com/Zennanzhoudev-Pixel/mewhelp/issues"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

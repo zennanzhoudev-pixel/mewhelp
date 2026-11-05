@@ -60,28 +60,35 @@
 
 ## 4. 架构总览
 
-```
-浏览器(聊天页 / 后台页)
-        │ HTTP + SSE
-        ▼
-FastAPI (app/api/*, app/main.py)
-        │
-        ▼
-LangGraph 状态图 (app/graph/)
-  START → resolve_reference → classify_intent → route_by_intent
-      ├─ knowledge   → retrieve_knowledge → confidence_check ─┬ strong → main_agent
-      │                                                       └ weak   → fallback_reply
-      ├─ refund_flow → fetch_order → retrieve_policy → main_agent
-      ├─ business    → main_agent (ReAct: main_agent ⇄ agent_tools)
-      ├─ escalate    → complaint_reply
-      └─ fallback_script → script_reply
-                                   ▼
-                                  log → END
-        │
-        ├── 检索: Milvus (dense + BM25 + RRF + rerank)
-        ├── 工具: 注册中心 → 执行引擎 → 内置 @tool / MCP Server(:8101/:8102)
-        ├── 存储: MySQL (会话/消息/知识/工单/审计/问题池/待审/评估/主题)
-        └── 可观测: Langfuse（可选，缺省不影响运行）
+```mermaid
+flowchart TB
+    UI["浏览器:聊天页 / 后台页(知识库·待审·观测·主题·验收)"] -->|"HTTP + SSE"| API["FastAPI app/api/*"]
+
+    subgraph G["LangGraph 状态图 app/graph/"]
+        RR["resolve_reference<br/>指代消解"] --> CI2["classify_intent<br/>意图识别"] --> RT{route_by_intent}
+        RT -->|knowledge| RK["retrieve_knowledge<br/>强制检索"]
+        RT -->|refund_flow| FO["fetch_order<br/>取订单"]
+        RT -->|business| MA["main_agent<br/>ReAct 循环"]
+        RT -->|escalate| CR["complaint_reply<br/>投诉安抚"]
+        RT -->|fallback_script| SR["script_reply<br/>固定话术"]
+        RK --> CC{confidence_check}
+        CC -->|strong| MA
+        CC -->|weak| FB["fallback_reply<br/>兜底落池"]
+        FO --> RP["retrieve_policy<br/>查政策"] --> MA
+        MA <-->|"工具循环"| AT["agent_tools"]
+        MA --> LG["log 留痕"]
+        CR --> LG
+        SR --> LG
+        FB --> LG
+    end
+
+    API --> G
+    AT --> REG["工具注册中心"]
+    REG --> BUILTIN["内置 @tool<br/>订单/商品/FAQ/工单/退款"]
+    REG --> MCP["MCP Server<br/>物流:8101 / 售后:8102"]
+    RK --> MIL["Milvus<br/>dense + BM25 + RRF + rerank"]
+    API --> DB["MySQL<br/>12 张表"]
+    API -.可选.-> OBS["Langfuse 观测"]
 ```
 
 完整架构说明见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
@@ -234,6 +241,7 @@ make ch10-golden / ch10-eval
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | 部署、端口、排障 |
 | [docs/COMPLIANCE.md](docs/COMPLIANCE.md) | 数据合规与安全边界 |
 | [docs/STATUS.md](docs/STATUS.md) | 能力状态矩阵与已知限制 |
+| [docs/FAQ.md](docs/FAQ.md) | 常见问题与踩坑 |
 | [docs/superpowers/](docs/superpowers/) | 各章 spec 与 implementation plan |
 | [DEPLOY.md](DEPLOY.md) | 面向 AI 编程助手的逐步部署任务书 |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 贡献流程与代码规范 |
