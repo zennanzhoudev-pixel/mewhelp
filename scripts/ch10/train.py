@@ -2,6 +2,7 @@
 运行:make ch10-train。设备自适应 cuda→mps→cpu(Trainer 自动挑);正则化 weight_decay + 早停盯验证集 micro-F1。
 HF 下载不通时:HF_ENDPOINT=https://hf-mirror.com make ch10-train。"""
 import json
+import os
 import pathlib
 
 import numpy as np
@@ -12,7 +13,7 @@ from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
 
 from app.core.taxonomy import ID2LABEL, LABEL2ID, NUM_CLASSES
 
-BASE = "hfl/chinese-roberta-wwm-ext"
+BASE = os.environ.get("CH10_BASE_MODEL", "hfl/chinese-roberta-wwm-ext")
 DATA = pathlib.Path("data/ch10/dataset")
 OUT = pathlib.Path("data/ch10/model")
 
@@ -75,7 +76,7 @@ def main() -> None:
         learning_rate=2e-5,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=64,
-        num_train_epochs=8,
+        num_train_epochs=int(os.environ.get("CH10_EPOCHS", "8")),
         weight_decay=0.01,                        # 正则化防过拟合
         metric_for_best_model="micro_f1",         # EarlyStopping 盯它
         greater_is_better=True,

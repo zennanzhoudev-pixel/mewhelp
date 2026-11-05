@@ -2,6 +2,7 @@
 运行:make ch10-corpus(需 mysql + 聊天上游)。产物落 data/ch10/,抽审文件给用户对话里审。"""
 import asyncio
 import json
+import os
 import pathlib
 import random
 
@@ -14,7 +15,8 @@ from scripts.ch10.corpus_lib import dedupe, desensitize
 from scripts.ch10.prelabel import prelabel_batch
 
 OUT = pathlib.Path("data/ch10")
-TARGET_PER_CLASS = 100
+# 每类目标条数;正式跑用默认 100,快速验证可用 CH10_TARGET_PER_CLASS=10
+TARGET_PER_CLASS = int(os.environ.get("CH10_TARGET_PER_CLASS", "100"))
 SIM_BATCH = 20     # 单次造数条数,小批多次控质量
 
 CLEAN_PROMPT = """修正下面这句用户问题里的错别字和乱格式:不改语义、不改口语风格、不增删诉求,
