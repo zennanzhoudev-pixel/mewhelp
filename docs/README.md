@@ -13,6 +13,7 @@
 | [STATUS.md](STATUS.md) | 已验证 / 需外部条件 / 未实现 |
 | [FAQ.md](FAQ.md) | 常见问题与踩坑 |
 | [PRODUCTION.md](PRODUCTION.md) | 生产加固 8 项:开关、怎么开、哪些需要你 |
+| [PRODUCTION-RUNBOOK.md](PRODUCTION-RUNBOOK.md) | 上线 6 项逐步操作手册(JWT/TLS/多副本/密钥/备份监控/保留期) |
 | [../DEPLOY.md](../DEPLOY.md) | 面向 AI 助手的逐步部署任务书 |
 | [superpowers/specs](superpowers/specs) | 各章设计定稿（ch01–ch10） |
 | [superpowers/plans](superpowers/plans) | 各章实现计划（ch01–ch10） |
